@@ -104,3 +104,4 @@ docs/api/
 *.dll
 *.exe
 latest
+duckdb.zig

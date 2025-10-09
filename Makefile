@@ -3,14 +3,12 @@
 # ################################################################################
 ZIG    ?= $(shell which zig || echo ~/.local/share/zig/0.15.1/zig)
 BUILD_TYPE    ?= Debug
-BUILD_OPTS      = -Doptimize=$(BUILD_TYPE)
+BUILD_OPTS      =
 JOBS          ?= $(shell nproc || echo 2)
 SRC_DIR       := src
-EXAMPLES_DIR  := examples
 BENCHMARKS_DIR:= benches
 BUILD_DIR     := zig-out
 CACHE_DIR     := .zig-cache
-BINARY_NAME   := example
 RELEASE_MODE := ReleaseSmall
 TEST_FLAGS := --summary all #--verbose
 JUNK_FILES := *.o *.obj *.dSYM *.dll *.so *.dylib *.a *.lib *.pdb temp/
@@ -22,7 +20,7 @@ SHELL         := /usr/bin/env bash
 # Targets
 ################################################################################
 
-.PHONY: all help build rebuild test release clean lint format docs serve-docs install-deps setup-hooks test-hooks
+.PHONY: all help build rebuild test release clean lint format docs serve-docs install-deps setup-hooks test-hooks duckdb-zig
 .DEFAULT_GOAL := help
 
 help: ## Show the help messages for all targets
@@ -54,7 +52,7 @@ clean: ## Remove docs, build artifacts, and cache directories
 
 lint: ## Check code style and formatting of Zig files
 	@echo "Running code style checks..."
-	@$(ZIG) fmt --check $(SRC_DIR) $(EXAMPLES_DIR)
+	@$(ZIG) fmt --check $(SRC_DIR)
 
 format: ## Format Zig files
 	@echo "Formatting Zig files..."
@@ -87,3 +85,9 @@ setup-hooks: ## Install Git hooks (pre-commit and pre-push)
 test-hooks: ## Test Git hooks on all files
 	@echo "Testing Git hooks..."
 	@pre-commit run --all-files --show-diff-on-failure
+
+duckdb-zig: ## Generate Zig code for the DuckDB C API
+	zig translate-c \
+	  -I external/extension-template-c/duckdb_capi \
+	  external/extension-template-c/duckdb_capi/duckdb_extension.h \
+	  > src/duckdb.zig

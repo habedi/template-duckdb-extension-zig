@@ -1,0 +1,3 @@
+[submodule "external/extension-template-c"]
+	path = external/extension-template-c
+	url = https://github.com/duckdb/extension-template-c.git
