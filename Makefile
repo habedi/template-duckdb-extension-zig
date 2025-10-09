@@ -15,14 +15,6 @@ RELEASE_MODE := ReleaseSmall
 TEST_FLAGS := --summary all #--verbose
 JUNK_FILES := *.o *.obj *.dSYM *.dll *.so *.dylib *.a *.lib *.pdb temp/
 
-# Automatically find all example names
-EXAMPLES      := $(patsubst %.zig,%,$(notdir $(wildcard examples/*.zig)))
-EXAMPLE       ?= all
-
-# Automatically find all benchmark names
-BENCHMARKS    := $(patsubst %.zig,%,$(notdir $(wildcard benches/*.zig)))
-BENCHMARK ?= all
-
 SHELL         := /usr/bin/env bash
 .SHELLFLAGS   := -eu -o pipefail -c
 
@@ -30,7 +22,7 @@ SHELL         := /usr/bin/env bash
 # Targets
 ################################################################################
 
-.PHONY: all help build rebuild run bench test release clean lint format docs serve-docs install-deps setup-hooks test-hooks
+.PHONY: all help build rebuild test release clean lint format docs serve-docs install-deps setup-hooks test-hooks
 .DEFAULT_GOAL := help
 
 help: ## Show the help messages for all targets
@@ -47,32 +39,6 @@ build: ## Build project (e.g. 'make build BUILD_TYPE=ReleaseSmall' or 'make buil
 	@$(ZIG) build $(BUILD_OPTS) -j$(JOBS)
 
 rebuild: clean build  ## clean and build
-
-run: ## Run an example (like 'make run EXAMPLE=e1_btree_map' or 'make run' to run all examples)
-	@if [ "$(EXAMPLE)" = "all" ]; then \
-	   echo "--> Running all examples..."; \
-	   for ex in $(EXAMPLES); do \
-		  echo ""; \
-		  echo "--> Running '$$ex'"; \
-		  $(ZIG) build run-$$ex $(BUILD_OPTS); \
-	   done; \
-	else \
-	   echo "--> Running example: $(EXAMPLE)"; \
-	   $(ZIG) build run-$(EXAMPLE) $(BUILD_OPTS); \
-	fi
-
-bench: ## Run a benchmark (like 'make bench BENCHMARK=b1_btree_map' or 'make run' to run all benchmarks)
-	@if [ "$(BENCHMARK)" = "all" ]; then \
-	   echo "--> Running all benchmarks..."; \
-	   for ex in $(BENCHMARKS); do \
-		  echo ""; \
-		  echo "--> Running '$$ex'"; \
-		  $(ZIG) build bench-$$ex $(BUILD_OPTS); \
-	   done; \
-	else \
-	   echo "--> Running benchmark: $(BENCHMARK)"; \
-	   $(ZIG) build bench-$(BENCHMARK) $(BUILD_OPTS); \
-	fi
 
 test: ## Run tests
 	@echo "Running tests..."
