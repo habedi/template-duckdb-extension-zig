@@ -57,33 +57,80 @@ It includes a basic structure for a DuckDB extension, including a build script a
    cd template-duckdb-extension-zig
    ```
 
-2. **Build the extension:**
+2. **Configure your extension name (optional):**
+   
+   The template uses "extension" as the default name. To use your own name, either:
+   
+   - Set it in the Makefile:
+     ```makefile
+     EXTENSION_NAME ?= my_custom_extension
+     ```
+   
+   - Or pass it as a parameter:
+     ```bash
+     make build-all EXTENSION_NAME=my_custom_extension
+     ```
+   
+   - Or use zig build directly:
+     ```bash
+     zig build build-all -Dextension-name=my_custom_extension
+     ```
+
+3. **Build the extension:**
    ```bash
-   zig build build-all
+   make build-all
+   # Or with custom name:
+   make build-all EXTENSION_NAME=my_custom_extension
    ```
 
-3. **Run tests:**
+4. **Run tests:**
    ```bash
    zig build test
-   zig build test-extension
+   zig build test-extension -Dextension-name=my_custom_extension
    ```
 
-4. **Try it interactively:**
+5. **Try it interactively:**
    ```bash
-   zig build duckdb
+   zig build duckdb -Dextension-name=my_custom_extension
    ```
+
+#### Configuration Variables
+
+The build system supports several configurable variables:
+
+- `EXTENSION_NAME` - Name of the extension (default: "extension")
+- `EXTENSION_API_VERSION` - DuckDB Extension API version (default: "v1.2.0")
+- `EXTENSION_VERSION` - Your extension version (default: "v1.0.0")
+- `PLATFORM` - Target platform (default: auto-detected)
+
+Example:
+```bash
+make build-all \
+  EXTENSION_NAME=my_extension \
+  EXTENSION_API_VERSION=v1.2.0 \
+  EXTENSION_VERSION=v2.0.0
+```
+
+For GitHub Actions, update the environment variables in `.github/workflows/builds.yml`:
+```yaml
+env:
+  EXTENSION_NAME: my_custom_extension
+  EXTENSION_API_VERSION: v1.2.0
+  EXTENSION_VERSION: v1.0.0
+```
 
 #### Available Commands
 
-All build tasks are managed through `zig build`:
+All build tasks are managed through `zig build` or `make`:
 
-- `zig build` - Build the extension
-- `zig build build-all` - Build with DuckDB metadata
-- `zig build test` - Run unit tests
-- `zig build test-extension` - Test with DuckDB
+- `make build` or `zig build` - Build the extension
+- `make build-all` or `zig build build-all` - Build with DuckDB metadata
+- `make test` or `zig build test` - Run unit tests
+- `make test-extension` or `zig build test-extension` - Test with DuckDB
 - `zig build duckdb` - Interactive DuckDB session
-- `zig build clean` - Clean build artifacts
+- `make clean` or `zig build clean` - Clean build artifacts
 - `zig build docs` - Generate documentation
+- `make build-all-platforms` - Build for all supported platforms
 
 For a complete list of commands and detailed usage, see [BUILD_GUIDE.md](BUILD_GUIDE.md).
 

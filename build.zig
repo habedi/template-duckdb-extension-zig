@@ -7,11 +7,10 @@ pub fn build(b: *std.Build) void {
         .preferred_optimize_mode = .ReleaseFast,
     });
 
-    // Build options for DuckDB Extension API version targeting
-    // Note: The Extension API version (v1.2.0) is stable across multiple DuckDB versions
-    // Using API version instead of DuckDB version for better compatibility
+    // Build options for DuckDB Extension configuration
+    const extension_name = b.option([]const u8, "extension-name", "Extension name (default: extension)") orelse "extension";
     const extension_api_version = b.option([]const u8, "api-version", "DuckDB Extension API version (default: v1.2.0)") orelse "v1.2.0";
-    const extension_version = b.option([]const u8, "extension-version", "Extension version") orelse "v1.0.0";
+    const extension_version = b.option([]const u8, "extension-version", "Extension version (default: v0.1.0)") orelse "v0.1.0";
     const platform = b.option([]const u8, "platform", "Target platform (e.g., linux_amd64, linux_arm64)") orelse detectPlatform(target);
 
     const duckdb_module = b.addModule("duckdb", .{
@@ -26,12 +25,13 @@ pub fn build(b: *std.Build) void {
     root_module.addImport("duckdb", duckdb_module);
 
     const lib = b.addLibrary(.{
-        .name = "extension",
+        .name = extension_name,
         .root_module = root_module,
         .linkage = .dynamic,
     });
 
-    lib.install_name = "extension.duckdb_extension";
+    const extension_filename = b.fmt("{s}.duckdb_extension", .{extension_name});
+    lib.install_name = extension_filename;
 
     // Add the C source file that handles DuckDB API integration
     lib.addCSourceFile(.{
@@ -46,7 +46,7 @@ pub fn build(b: *std.Build) void {
     lib.linkLibC();
 
     // Add C macro for extension name
-    lib.root_module.addCMacro("DUCKDB_EXTENSION_NAME", "extension");
+    lib.root_module.addCMacro("DUCKDB_EXTENSION_NAME", extension_name);
     lib.root_module.addCMacro("DUCKDB_BUILD_LOADABLE_EXTENSION", "1");
 
     // Allow undefined symbols - they will be provided by DuckDB at runtime
@@ -55,9 +55,6 @@ pub fn build(b: *std.Build) void {
     // Install the library artifact
     const lib_install = b.addInstallArtifact(lib, .{});
     b.getInstallStep().dependOn(&lib_install.step);
-
-    // Note: We don't copy to .duckdb_extension here anymore
-    // The metadata script handles creating the final .duckdb_extension file
 
     // Test configuration - use a separate test file that doesn't require DuckDB runtime
     const test_module = b.createModule(.{
@@ -85,20 +82,29 @@ pub fn build(b: *std.Build) void {
     });
     clean_step.dependOn(&clean_cmd.step);
 
-    // Add metadata step - adds DuckDB extension metadata for proper loading
-    // Note: Using Extension API version (v1.2.0) for compatibility across DuckDB versions
+    // Detect the library file extension based on target OS
+    const lib_filename = getLibFilename(b, target);
+    // Windows DLLs go to bin/, other platforms go to lib/
+    const os_tag = target.result.os.tag;
+    const lib_path = if (os_tag == .windows)
+        b.getInstallPath(.bin, lib_filename)
+    else
+        b.getInstallPath(.lib, lib_filename);
+
+    // Add metadata step - adds DuckDB extension metadata for proper loading (name, version, platform, API version)
+    // Note: we will be using DuckDB extension API version (v1.2.0) so the extension will be compatible with DuckDB versions >= 1.2.0
     const add_metadata_step = b.step("add-metadata", "Add DuckDB extension metadata");
     const metadata_cmd = b.addSystemCommand(&[_][]const u8{
         "python3",
         "external/extension-template-c/extension-ci-tools/scripts/append_extension_metadata.py",
         "-l",
-        b.getInstallPath(.lib, "libextension.so"),
+        lib_path,
         "-n",
-        "extension",
+        extension_name,
         "-o",
-        b.getInstallPath(.lib, "extension.duckdb_extension"),
+        b.getInstallPath(.lib, extension_filename),
         "-dv",
-        extension_api_version,  // Changed: Use API version, not DuckDB version
+        extension_api_version,
         "-ev",
         extension_version,
         "-p",
@@ -109,25 +115,27 @@ pub fn build(b: *std.Build) void {
 
     // Test extension with DuckDB step
     const test_ext_step = b.step("test-extension", "Test the extension with DuckDB");
+    const test_load_cmd = b.fmt("LOAD 'zig-out/lib/{s}'; SELECT 'Extension loaded successfully' as status;", .{extension_filename});
     const test_ext_cmd = b.addSystemCommand(&[_][]const u8{
         "duckdb",
         "-unsigned",
         "-c",
-        "LOAD 'zig-out/lib/extension.duckdb_extension'; SELECT 'Extension loaded successfully' as status;",
+        test_load_cmd,
     });
-    test_ext_cmd.step.dependOn(&metadata_cmd.step);  // Changed from b.getInstallStep()
+    test_ext_cmd.step.dependOn(&metadata_cmd.step);
     test_ext_step.dependOn(&test_ext_cmd.step);
 
     // Interactive DuckDB session with extension loaded
     const duckdb_step = b.step("duckdb", "Start interactive DuckDB session with extension loaded");
 
     // Create init file with extension loaded
+    const init_sql_content = b.fmt("echo \"LOAD 'zig-out/lib/{s}'; SELECT 'Extension loaded successfully!' as status;\" > /tmp/duckdb_init.sql", .{extension_filename});
     const create_init = b.addSystemCommand(&[_][]const u8{
         "sh",
         "-c",
-        "echo \"LOAD 'zig-out/lib/extension.duckdb_extension'; SELECT '✅ Extension loaded successfully!' as status;\" > /tmp/duckdb_init.sql",
+        init_sql_content,
     });
-    create_init.step.dependOn(&metadata_cmd.step);  // Changed from b.getInstallStep()
+    create_init.step.dependOn(&metadata_cmd.step);
 
     const run_duckdb = b.addSystemCommand(&[_][]const u8{
         "duckdb",
@@ -143,7 +151,7 @@ pub fn build(b: *std.Build) void {
     const translate_cmd = b.addSystemCommand(&[_][]const u8{
         "sh",
         "-c",
-        "zig translate-c -I external/extension-template-c/duckdb_capi external/extension-template-c/duckdb_capi/duckdb_extension.h > src/duckdb.zig",
+        "zig translate-c -I external/extension-template-c/duckdb_capi external/extension-template-c/duckdb_extension.h > src/duckdb.zig",
     });
     gen_bindings_step.dependOn(&translate_cmd.step);
 
@@ -182,4 +190,26 @@ fn detectPlatform(target: std.Build.ResolvedTarget) []const u8 {
     }
 
     return "unknown";
+}
+
+fn getLibExtension(target: std.Build.ResolvedTarget) []const u8 {
+    const os_tag = target.result.os.tag;
+
+    return switch (os_tag) {
+        .windows => ".dll",
+        .macos => ".dylib",
+        else => ".so",
+    };
+}
+
+fn getLibFilename(b: *std.Build, target: std.Build.ResolvedTarget) []const u8 {
+    const lib_extension = getLibExtension(target);
+    const os_tag = target.result.os.tag;
+
+    // Note: Windows DLLs don't use "lib" prefix, but other platforms do
+    if (os_tag == .windows) {
+        return b.fmt("extension{s}", .{lib_extension});
+    } else {
+        return b.fmt("libextension{s}", .{lib_extension});
+    }
 }

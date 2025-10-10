@@ -1,7 +1,7 @@
 #include "duckdb_extension.h"
 #include <string.h>
 
-// This macro is crucial - it declares the external DuckDB API that will be provided at runtime
+// Important: this macro declares the external DuckDB API that will be provided at runtime
 DUCKDB_EXTENSION_EXTERN
 
 // Forward declare the Zig function
