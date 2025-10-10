@@ -7,6 +7,11 @@ pub fn build(b: *std.Build) void {
         .preferred_optimize_mode = .ReleaseFast,
     });
 
+    // Build options for DuckDB version targeting
+    const duckdb_version = b.option([]const u8, "duckdb-version", "DuckDB version to target (e.g., v1.2.0, v1.3.0)") orelse "v1.2.0";
+    const extension_version = b.option([]const u8, "extension-version", "Extension version") orelse "v1.0.0";
+    const platform = b.option([]const u8, "platform", "Target platform (e.g., linux_amd64, linux_arm64)") orelse detectPlatform(target);
+
     const duckdb_module = b.addModule("duckdb", .{
         .root_source_file = b.path("src/duckdb.zig"),
     });
@@ -26,17 +31,31 @@ pub fn build(b: *std.Build) void {
 
     lib.install_name = "extension.duckdb_extension";
 
-    b.installArtifact(lib);
-
-    // Create a copy with .duckdb_extension suffix for DuckDB
-    const copy_extension = b.addSystemCommand(&[_][]const u8{
-        "cp",
-        "-f",
-        b.getInstallPath(.lib, "libextension.so"),
-        b.getInstallPath(.lib, "extension.duckdb_extension"),
+    // Add the C source file that handles DuckDB API integration
+    lib.addCSourceFile(.{
+        .file = b.path("src/extension.c"),
+        .flags = &.{"-std=c11"},
     });
-    copy_extension.step.dependOn(&lib.step);
-    b.getInstallStep().dependOn(&copy_extension.step);
+
+    // Add include path for DuckDB headers
+    lib.addIncludePath(b.path("external/extension-template-c/duckdb_capi"));
+
+    // Link libc (required for C code)
+    lib.linkLibC();
+
+    // Add C macro for extension name
+    lib.root_module.addCMacro("DUCKDB_EXTENSION_NAME", "extension");
+    lib.root_module.addCMacro("DUCKDB_BUILD_LOADABLE_EXTENSION", "1");
+
+    // Allow undefined symbols - they will be provided by DuckDB at runtime
+    lib.linker_allow_shlib_undefined = true;
+
+    // Install the library artifact
+    const lib_install = b.addInstallArtifact(lib, .{});
+    b.getInstallStep().dependOn(&lib_install.step);
+
+    // Note: We don't copy to .duckdb_extension here anymore
+    // The metadata script handles creating the final .duckdb_extension file
 
     // Test configuration - use a separate test file that doesn't require DuckDB runtime
     const test_module = b.createModule(.{
@@ -54,6 +73,82 @@ pub fn build(b: *std.Build) void {
     const test_step = b.step("test", "Run unit tests");
     test_step.dependOn(&run_lib_unit_tests.step);
 
+    // Clean step - removes build artifacts and cache
+    const clean_step = b.step("clean", "Remove build artifacts and cache");
+    const clean_cmd = b.addSystemCommand(&[_][]const u8{
+        "rm",
+        "-rf",
+        "zig-out",
+        ".zig-cache",
+    });
+    clean_step.dependOn(&clean_cmd.step);
+
+    // Add metadata step - adds DuckDB extension metadata for proper loading
+    const add_metadata_step = b.step("add-metadata", "Add DuckDB extension metadata");
+    const metadata_cmd = b.addSystemCommand(&[_][]const u8{
+        "python3",
+        "external/extension-template-c/extension-ci-tools/scripts/append_extension_metadata.py",
+        "-l",
+        b.getInstallPath(.lib, "libextension.so"),
+        "-n",
+        "extension",
+        "-o",
+        b.getInstallPath(.lib, "extension.duckdb_extension"),
+        "-dv",
+        duckdb_version,
+        "-ev",
+        extension_version,
+        "-p",
+        platform,
+    });
+    metadata_cmd.step.dependOn(b.getInstallStep());
+    add_metadata_step.dependOn(&metadata_cmd.step);
+
+    // Test extension with DuckDB step
+    const test_ext_step = b.step("test-extension", "Test the extension with DuckDB");
+    const test_ext_cmd = b.addSystemCommand(&[_][]const u8{
+        "duckdb",
+        "-unsigned",
+        "-c",
+        "LOAD 'zig-out/lib/extension.duckdb_extension'; SELECT 'Extension loaded successfully' as status;",
+    });
+    test_ext_cmd.step.dependOn(&metadata_cmd.step);  // Changed from b.getInstallStep()
+    test_ext_step.dependOn(&test_ext_cmd.step);
+
+    // Interactive DuckDB session with extension loaded
+    const duckdb_step = b.step("duckdb", "Start interactive DuckDB session with extension loaded");
+
+    // Create init file with extension loaded
+    const create_init = b.addSystemCommand(&[_][]const u8{
+        "sh",
+        "-c",
+        "echo \"LOAD 'zig-out/lib/extension.duckdb_extension'; SELECT '✅ Extension loaded successfully!' as status;\" > /tmp/duckdb_init.sql",
+    });
+    create_init.step.dependOn(&metadata_cmd.step);  // Changed from b.getInstallStep()
+
+    const run_duckdb = b.addSystemCommand(&[_][]const u8{
+        "duckdb",
+        "-unsigned",
+        "-init",
+        "/tmp/duckdb_init.sql",
+    });
+    run_duckdb.step.dependOn(&create_init.step);
+    duckdb_step.dependOn(&run_duckdb.step);
+
+    // Generate DuckDB Zig bindings from C API
+    const gen_bindings_step = b.step("duckdb-translate", "Generate Zig bindings from DuckDB C API");
+    const translate_cmd = b.addSystemCommand(&[_][]const u8{
+        "sh",
+        "-c",
+        "zig translate-c -I external/extension-template-c/duckdb_capi external/extension-template-c/duckdb_capi/duckdb_extension.h > src/duckdb.zig",
+    });
+    gen_bindings_step.dependOn(&translate_cmd.step);
+
+    // Build all: build + add metadata
+    const build_all_step = b.step("build-all", "Build extension and add metadata");
+    build_all_step.dependOn(b.getInstallStep());
+    build_all_step.dependOn(add_metadata_step);
+
     // The documentation step remains unchanged.
     const docs_step = b.step("docs", "Generate API documentation");
     const doc_install_path = "docs/api";
@@ -68,4 +163,20 @@ pub fn build(b: *std.Build) void {
     });
     gen_docs_cmd.step.dependOn(&mkdir_cmd.step);
     docs_step.dependOn(&gen_docs_cmd.step);
+}
+
+fn detectPlatform(target: std.Build.ResolvedTarget) []const u8 {
+    const os_tag = target.result.os.tag;
+    const cpu_arch = target.result.cpu.arch;
+
+    if (cpu_arch == .x86_64) {
+        if (os_tag == .linux) return "linux_amd64";
+        if (os_tag == .macos) return "osx_amd64";
+        if (os_tag == .windows) return "windows_amd64";
+    } else if (cpu_arch == .aarch64) {
+        if (os_tag == .linux) return "linux_arm64";
+        if (os_tag == .macos) return "osx_arm64";
+    }
+
+    return "unknown";
 }
