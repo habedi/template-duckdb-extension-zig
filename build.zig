@@ -7,8 +7,10 @@ pub fn build(b: *std.Build) void {
         .preferred_optimize_mode = .ReleaseFast,
     });
 
-    // Build options for DuckDB version targeting
-    const duckdb_version = b.option([]const u8, "duckdb-version", "DuckDB version to target (e.g., v1.2.0, v1.3.0)") orelse "v1.2.0";
+    // Build options for DuckDB Extension API version targeting
+    // Note: The Extension API version (v1.2.0) is stable across multiple DuckDB versions
+    // Using API version instead of DuckDB version for better compatibility
+    const extension_api_version = b.option([]const u8, "api-version", "DuckDB Extension API version (default: v1.2.0)") orelse "v1.2.0";
     const extension_version = b.option([]const u8, "extension-version", "Extension version") orelse "v1.0.0";
     const platform = b.option([]const u8, "platform", "Target platform (e.g., linux_amd64, linux_arm64)") orelse detectPlatform(target);
 
@@ -84,6 +86,7 @@ pub fn build(b: *std.Build) void {
     clean_step.dependOn(&clean_cmd.step);
 
     // Add metadata step - adds DuckDB extension metadata for proper loading
+    // Note: Using Extension API version (v1.2.0) for compatibility across DuckDB versions
     const add_metadata_step = b.step("add-metadata", "Add DuckDB extension metadata");
     const metadata_cmd = b.addSystemCommand(&[_][]const u8{
         "python3",
@@ -95,7 +98,7 @@ pub fn build(b: *std.Build) void {
         "-o",
         b.getInstallPath(.lib, "extension.duckdb_extension"),
         "-dv",
-        duckdb_version,
+        extension_api_version,  // Changed: Use API version, not DuckDB version
         "-ev",
         extension_version,
         "-p",

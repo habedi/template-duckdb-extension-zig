@@ -14,8 +14,9 @@ TEST_FLAGS := --summary all #--verbose
 JUNK_FILES := *.o *.obj *.dSYM *.dll *.so *.dylib *.a *.lib *.pdb temp/
 EXTENSION_FILE := $(BUILD_DIR)/lib/extension.duckdb_extension
 
-# DuckDB version configuration (can be overridden)
-DUCKDB_VERSION ?= v1.2.0
+# DuckDB Extension API version configuration (can be overridden)
+# Note: Extension API v1.2.0 is compatible with DuckDB v1.2.0, v1.3.0, v1.4.0, etc.
+EXTENSION_API_VERSION ?= v1.2.0
 EXTENSION_VERSION ?= v1.0.0
 PLATFORM ?= linux_amd64
 
@@ -37,13 +38,13 @@ help: ## Show the help messages for all targets
 	awk 'BEGIN {FS = ":.*## "}; {printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2}'
 	@echo ""
 	@echo "Configuration Variables:"
-	@echo "  DUCKDB_VERSION    DuckDB version to target (default: $(DUCKDB_VERSION))"
+	@echo "  EXTENSION_API_VERSION    DuckDB Extension API version to target (default: $(EXTENSION_API_VERSION))"
 	@echo "  EXTENSION_VERSION Extension version (default: $(EXTENSION_VERSION))"
 	@echo "  PLATFORM          Target platform (default: $(PLATFORM))"
 	@echo ""
 	@echo "Examples:"
-	@echo "  make build-all DUCKDB_VERSION=v1.3.0"
-	@echo "  make build-all DUCKDB_VERSION=v1.2.0 EXTENSION_VERSION=v2.0.0"
+	@echo "  make build-all EXTENSION_API_VERSION=v1.3.0"
+	@echo "  make build-all EXTENSION_API_VERSION=v1.2.0 EXTENSION_VERSION=v2.0.0"
 
 all: build test  ## Build and test (use 'make build-all' for extension with metadata)
 
@@ -52,9 +53,9 @@ build: ## Build extension library
 	@$(ZIG) build $(BUILD_OPTS) -j$(JOBS)
 
 build-all: ## Build extension with DuckDB metadata (ready to load)
-	@echo "Building DuckDB extension for DuckDB $(DUCKDB_VERSION)..."
+	@echo "Building DuckDB extension with API $(EXTENSION_API_VERSION)..."
 	@$(ZIG) build build-all $(BUILD_OPTS) \
-		-Dduckdb-version=$(DUCKDB_VERSION) \
+		-Dapi-version=$(EXTENSION_API_VERSION) \
 		-Dextension-version=$(EXTENSION_VERSION) \
 		-Dplatform=$(PLATFORM) \
 		-j$(JOBS)
@@ -68,15 +69,15 @@ test: ## Run Zig unit tests
 test-extension: build-all  ## Test extension loading in DuckDB
 	@echo "Testing extension in DuckDB..."
 	@$(ZIG) build test-extension \
-		-Dduckdb-version=$(DUCKDB_VERSION) \
+		-Dapi-version=$(EXTENSION_API_VERSION) \
 		-Dextension-version=$(EXTENSION_VERSION) \
 		-Dplatform=$(PLATFORM)
 
 release: ## Build in ReleaseFast mode with metadata
-	@echo "Building extension in Release mode for DuckDB $(DUCKDB_VERSION)..."
+	@echo "Building extension in Release mode with API $(EXTENSION_API_VERSION)..."
 	@$(ZIG) build build-all \
 		-Doptimize=ReleaseFast \
-		-Dduckdb-version=$(DUCKDB_VERSION) \
+		-Dapi-version=$(EXTENSION_API_VERSION) \
 		-Dextension-version=$(EXTENSION_VERSION) \
 		-Dplatform=$(PLATFORM) \
 		-j$(JOBS)
@@ -115,7 +116,7 @@ duckdb-translate: ## Regenerate Zig bindings from DuckDB C API headers
 duckdb: build-all  ## Start interactive DuckDB with extension loaded
 	@echo "Starting DuckDB with extension pre-loaded..."
 	@$(ZIG) build duckdb \
-		-Dduckdb-version=$(DUCKDB_VERSION) \
+		-Dapi-version=$(EXTENSION_API_VERSION) \
 		-Dextension-version=$(EXTENSION_VERSION) \
 		-Dplatform=$(PLATFORM)
 
@@ -125,14 +126,11 @@ install-deps: ## Install system dependencies (for Debian-based systems)
 	@sudo apt-get install -y build-essential python3 python3-pip clang-format
 	@echo "Note: Install zig separately or use the version in ~/.local/share/zig/0.15.1/"
 
-# Build for multiple DuckDB versions
+# Build for multiple DuckDB versions is now unnecessary!
+# The extension built with API v1.2.0 works across multiple DuckDB versions
 .PHONY: build-multi-version
-build-multi-version: ## Build for multiple DuckDB versions (v1.2.0 and v1.3.0)
-	@echo "Building for DuckDB v1.2.0..."
-	@$(MAKE) build-all DUCKDB_VERSION=v1.2.0
-	@mv $(BUILD_DIR)/lib/extension.duckdb_extension $(BUILD_DIR)/lib/extension-v1.2.0.duckdb_extension
-	@echo "Building for DuckDB v1.3.0..."
-	@$(MAKE) build-all DUCKDB_VERSION=v1.3.0
-	@mv $(BUILD_DIR)/lib/extension.duckdb_extension $(BUILD_DIR)/lib/extension-v1.3.0.duckdb_extension
-	@echo "Done! Extensions built for multiple versions."
-
+build-multi-version: ## Build extension (works with DuckDB v1.2.x, v1.3.x, v1.4.x)
+	@echo "Note: With Extension API v1.2.0, one build works across multiple DuckDB versions!"
+	@echo "Building single extension with API $(EXTENSION_API_VERSION)..."
+	@$(MAKE) build-all
+	@echo "Done! This extension works with DuckDB v1.2.x, v1.3.x, v1.4.x, and future v1.x versions."
