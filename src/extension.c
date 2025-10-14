@@ -94,4 +94,3 @@ DUCKDB_EXTENSION_ENTRYPOINT(duckdb_connection conn, duckdb_extension_info info, 
 
     return true;
 }
-

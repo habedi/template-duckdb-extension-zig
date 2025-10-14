@@ -248,3 +248,19 @@ build-all-platforms: ## Build for all major platforms (Linux glibc, Linux musl, 
 	@echo ""
 	@echo "Done! Built for all platforms:"
 	@find $(BUILD_DIR)/lib -name "${EXTENSION_NAME}.duckdb_extension" -type f -exec echo "  {}" \; -exec ls -lh {} \;
+
+.PHONY: setup-hooks
+setup-hooks: ## Install Git hooks (pre-commit and pre-push)
+	@echo "Setting up Git hooks..."
+	@if ! command -v pre-commit &> /dev/null; then \
+	   echo "pre-commit not found. Please install it using 'pip install pre-commit'"; \
+	   exit 1; \
+	fi
+	@pre-commit install --hook-type pre-commit
+	@pre-commit install --hook-type pre-push
+	@pre-commit install-hooks
+
+.PHONY: test-hooks
+test-hooks: ## Test Git hooks on all files
+	@echo "Testing Git hooks..."
+	@pre-commit run --all-files --show-diff-on-failure

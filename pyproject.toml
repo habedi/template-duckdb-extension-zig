@@ -1,7 +1,7 @@
 [project]
 name = "template-duckdb-extension-zig"
 version = "0.1.0"
-description = "The Python environment for the Duckdb extension template for Zig"
+description = "The Python environment for the `Duckdb extension template for Zig` project"
 
 requires-python = ">=3.10,<4.0"
 dependencies = [

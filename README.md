@@ -9,29 +9,27 @@
 [![Tests](https://img.shields.io/github/actions/workflow/status/habedi/template-duckdb-extension-zig/tests.yml?label=tests&style=flat&labelColor=282c34&logo=github)](https://github.com/habedi/template-duckdb-extension-zig/actions/workflows/tests.yml)
 [![Benchmarks](https://img.shields.io/github/actions/workflow/status/habedi/template-duckdb-extension-zig/benches.yml?label=benches&style=flat&labelColor=282c34&logo=github)](https://github.com/habedi/template-duckdb-extension-zig/actions/workflows/benches.yml)
 [![CodeFactor](https://img.shields.io/codefactor/grade/github/habedi/template-duckdb-extension-zig?label=quality&style=flat&labelColor=282c34&logo=codefactor)](https://www.codefactor.io/repository/github/habedi/template-duckdb-extension-zig)
-[![Docs](https://img.shields.io/badge/docs-view-blue?style=flat&labelColor=282c34&logo=read-the-docs)](https://CogitatorTech.github.io/ordered/)
-[![Examples](https://img.shields.io/badge/examples-view-green?style=flat&labelColor=282c34&logo=zig)](https://github.com/habedi/template-duckdb-extension-zig/tree/main/examples)
 [![Zig Version](https://img.shields.io/badge/Zig-0.15.1-orange?logo=zig&labelColor=282c34)](https://ziglang.org/download/)
 [![Release](https://img.shields.io/github/release/habedi/template-duckdb-extension-zig.svg?label=release&style=flat&labelColor=282c34&logo=github)](https://github.com/habedi/template-duckdb-extension-zig/releases/latest)
 [![License](https://img.shields.io/badge/license-MIT-007ec6?label=license&style=flat&labelColor=282c34&logo=open-source-initiative)](https://github.com/habedi/template-duckdb-extension-zig/blob/main/LICENSE)
 
-A DuckDB extension template for Zig
+A template for creating DuckDB extensions in Zig
 
 </div>
 
 ---
 
-This is a DuckDB extension template for Zig that provides a starting point for creating DuckDB extensions in Zig.
-It includes a basic structure for a DuckDB extension, including a build script and a test suite.
+This is a DuckDB extension template for Zig that provides a starting point for creating DuckDB extensions in Zig
+programming language.
+It uses the DuckDB's extension API ([C version](https://github.com/duckdb/extension-template-c/tree/main/duckdb_capi))
+and supports and multi-platform builds using Zig's cross-compilation features.
 
 ### Features
 
-- **Pure Zig build system** - All build tasks managed through `build.zig` (no dependency on shell scripts)
-- **Easy development workflow** - Simple commands for building, testing, and debugging
-- **Cross-platform support** - Built-in support for cross-compilation via Zig
-- **DuckDB integration** - Full C API bindings and metadata support
-- **Unit testing** - Comprehensive test suite with Zig's test framework
-- **Documentation generation** - Automatic API documentation
+- All build tasks can be managed using `build.zig` or `Makefile` (if you prefer GNU Make)
+- Built-in support for cross-compilation (for Linux, macOS, and Windows; ARM and AMD)
+- Very fast builds; no need to build DuckDB from source
+- Built extensions are version-agnostic and work with DuckDB 1.2.0 and later
 
 > [!IMPORTANT]
 > The template is in early development, so bugs and breaking API changes are expected.
@@ -44,10 +42,12 @@ It includes a basic structure for a DuckDB extension, including a build script a
 
 #### Prerequisites
 
-- Zig 0.15.1 (installed at `~/.local/share/zig/0.15.1/` or in your PATH)
-- Python 3 (for metadata generation)
-- DuckDB (for testing the extension)
-- Git (for submodule management)
+- Zig 0.15.x
+- Python 3
+- DuckDB 1.2.0 or later (recommended for testing the extension)
+- GNU Make (optional, for convenience)
+- A C compiler
+- Git
 
 #### Quick Start
 
@@ -58,28 +58,28 @@ It includes a basic structure for a DuckDB extension, including a build script a
    ```
 
 2. **Configure your extension name (optional):**
-   
+
    The template uses "extension" as the default name. To use your own name, either:
-   
-   - Set it in the Makefile:
-     ```makefile
-     EXTENSION_NAME ?= my_custom_extension
-     ```
-   
-   - Or pass it as a parameter:
-     ```bash
-     make build-all EXTENSION_NAME=my_custom_extension
-     ```
-   
-   - Or use zig build directly:
-     ```bash
-     zig build build-all -Dextension-name=my_custom_extension
-     ```
+
+    - Set it in the Makefile:
+      ```makefile
+      EXTENSION_NAME ?= my_custom_extension
+      ```
+
+    - Or pass it as a parameter:
+      ```bash
+      make build-all EXTENSION_NAME=my_custom_extension
+      ```
+
+    - Or use zig build directly:
+      ```bash
+      zig build build-all -Dextension-name=my_custom_extension
+      ```
 
 3. **Build the extension:**
    ```bash
    make build-all
-   # Or with custom name:
+   # Or with a custom name:
    make build-all EXTENSION_NAME=my_custom_extension
    ```
 
@@ -99,11 +99,12 @@ It includes a basic structure for a DuckDB extension, including a build script a
 The build system supports several configurable variables:
 
 - `EXTENSION_NAME` - Name of the extension (default: "extension")
-- `EXTENSION_API_VERSION` - DuckDB Extension API version (default: "v1.2.0")
+- `EXTENSION_API_VERSION` - DuckDB Extension API version (default: "v1.2.0"; normally you don't need to change this)
 - `EXTENSION_VERSION` - Your extension version (default: "v1.0.0")
 - `PLATFORM` - Target platform (default: auto-detected)
 
 Example:
+
 ```bash
 make build-all \
   EXTENSION_NAME=my_extension \
@@ -112,11 +113,12 @@ make build-all \
 ```
 
 For GitHub Actions, update the environment variables in `.github/workflows/builds.yml`:
+
 ```yaml
 env:
-  EXTENSION_NAME: my_custom_extension
-  EXTENSION_API_VERSION: v1.2.0
-  EXTENSION_VERSION: v1.0.0
+    EXTENSION_NAME: my_custom_extension
+    EXTENSION_API_VERSION: v1.2.0
+    EXTENSION_VERSION: v1.0.0
 ```
 
 #### Available Commands
@@ -132,26 +134,23 @@ All build tasks are managed through `zig build` or `make`:
 - `zig build docs` - Generate documentation
 - `make build-all-platforms` - Build for all supported platforms
 
-For a complete list of commands and detailed usage, see [BUILD_GUIDE.md](BUILD_GUIDE.md).
-
 ---
 
 ### Documentation
 
-- **[Build System Guide](BUILD_GUIDE.md)** - Complete guide to building and managing the project
 - **API Documentation** - Run `zig build docs` and open `docs/api/index.html`
 
-### Project Structure
+#### Project Structure
 
 ```
-├── build.zig              # Zig build configuration (all build tasks)
-├── Makefile               # Convenience wrapper around zig build
+├── build.zig              # Zig build configuration
+├── Makefile               # Wrapper around zig build (optional)
 ├── src/
 │   ├── lib.zig           # Main extension code
-│   ├── lib_test.zig      # Unit tests
-│   └── duckdb.zig        # DuckDB C API bindings
-├── external/             # Git submodules (DuckDB C API)
-└── scripts/              # Legacy scripts (deprecated)
+│   ├── lib_test.zig      # Unit tests for the extension
+│   ├── extension.c      # C entry point for the extension
+│   └── duckdb.zig        # DuckDB extension C API (translated to Zig)
+└── external/              # Git submodules (extension API)
 ```
 
 ---
@@ -162,7 +161,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for details on how to make a contribution
 
 ### License
 
-This project is licensed under the MIT License (see [LICENSE](LICENSE)).
+This project is licensed under the MIT License ([LICENSE](LICENSE) or https://opensource.org/license/MIT).
 
 ### Acknowledgements
 
