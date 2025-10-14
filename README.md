@@ -28,7 +28,7 @@ I'm sharing this template here in case it can be useful to others.
 ### Features
 
 - All build tasks can be managed using `build.zig` or `Makefile` (if you prefer GNU Make)
-- Built-in support for cross-compilation (for Linux, macOS, and Windows; ARM and AMD)
+- Built-in support for cross-compilation (for Linux, macOS, and Windows; and different hardware architectures)
 - Very fast builds; no need to build DuckDB from source
 - Built extensions are version-agnostic and work with DuckDB 1.2.0 and later
 
@@ -101,7 +101,7 @@ The build system supports several configurable variables:
 
 - `EXTENSION_NAME` - Name of the extension (default: "extension")
 - `EXTENSION_API_VERSION` - DuckDB Extension API version (default: "v1.2.0"; normally you don't need to change this)
-- `EXTENSION_VERSION` - Your extension version (default: "v1.0.0")
+- `EXTENSION_VERSION` - Your extension version (default: "v0.1.0")
 - `PLATFORM` - Target platform (default: auto-detected)
 
 Example:
@@ -151,7 +151,7 @@ All build tasks are managed through `zig build` or `make`:
 │   ├── lib_test.zig      # Unit tests for the extension
 │   ├── extension.c       # C entry point for the extension
 │   └── duckdb.zig        # DuckDB extension API (translated to Zig from C)
-└── external/             # External depencies like Git submodules (extension API)
+└── external/             # External dependencies like Git submodules (extension API)
 ```
 
 ---
