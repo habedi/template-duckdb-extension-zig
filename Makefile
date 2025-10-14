@@ -1,7 +1,7 @@
 # ################################################################################
 # # Configuration and Variables
 # ################################################################################
-ZIG    ?= $(shell which zig || echo ~/.local/share/zig/0.15.1/zig)
+ZIG    ?= $(shell which zig || echo ~/.local/share/zig/0.15.2/zig)
 BUILD_TYPE    ?= Debug
 JOBS          ?= $(shell nproc || echo 2)
 SRC_DIR       := src

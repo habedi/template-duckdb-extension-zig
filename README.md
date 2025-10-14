@@ -7,9 +7,8 @@
 <h2>DuckDB Extension Template for Zig</h2>
 
 [![Tests](https://img.shields.io/github/actions/workflow/status/habedi/template-duckdb-extension-zig/tests.yml?label=tests&style=flat&labelColor=282c34&logo=github)](https://github.com/habedi/template-duckdb-extension-zig/actions/workflows/tests.yml)
-[![Benchmarks](https://img.shields.io/github/actions/workflow/status/habedi/template-duckdb-extension-zig/benches.yml?label=benches&style=flat&labelColor=282c34&logo=github)](https://github.com/habedi/template-duckdb-extension-zig/actions/workflows/benches.yml)
-[![CodeFactor](https://img.shields.io/codefactor/grade/github/habedi/template-duckdb-extension-zig?label=quality&style=flat&labelColor=282c34&logo=codefactor)](https://www.codefactor.io/repository/github/habedi/template-duckdb-extension-zig)
-[![Zig Version](https://img.shields.io/badge/Zig-0.15.1-orange?logo=zig&labelColor=282c34)](https://ziglang.org/download/)
+[![CodeFactor](https://img.shields.io/codefactor/grade/github/habedi/template-duckdb-extension-zig?label=code%20quality&style=flat&labelColor=282c34&logo=codefactor)](https://www.codefactor.io/repository/github/habedi/template-duckdb-extension-zig)
+[![Zig Version](https://img.shields.io/badge/Zig-0.15.2-orange?logo=zig&labelColor=282c34)](https://ziglang.org/download/)
 [![Release](https://img.shields.io/github/release/habedi/template-duckdb-extension-zig.svg?label=release&style=flat&labelColor=282c34&logo=github)](https://github.com/habedi/template-duckdb-extension-zig/releases/latest)
 [![License](https://img.shields.io/badge/license-MIT-007ec6?label=license&style=flat&labelColor=282c34&logo=open-source-initiative)](https://github.com/habedi/template-duckdb-extension-zig/blob/main/LICENSE)
 
@@ -22,7 +21,9 @@ A template for creating DuckDB extensions in Zig
 This is a DuckDB extension template for Zig that provides a starting point for creating DuckDB extensions in Zig
 programming language.
 It uses the DuckDB's extension API ([C version](https://github.com/duckdb/extension-template-c/tree/main/duckdb_capi))
-and supports and multi-platform builds using Zig's cross-compilation features.
+and supports multi-platform builds using Zig's cross-compilation features.
+
+I'm sharing this template here in case it can be useful to others.
 
 ### Features
 
@@ -42,7 +43,7 @@ and supports and multi-platform builds using Zig's cross-compilation features.
 
 #### Prerequisites
 
-- Zig 0.15.x
+- Zig 0.15.2
 - Python 3
 - DuckDB 1.2.0 or later (recommended for testing the extension)
 - GNU Make (optional, for convenience)
@@ -126,13 +127,13 @@ env:
 All build tasks are managed through `zig build` or `make`:
 
 - `make build` or `zig build` - Build the extension
-- `make build-all` or `zig build build-all` - Build with DuckDB metadata
+- `make build-all` or `zig build build-all` - Build with DuckDB metadata added to the extension
 - `make test` or `zig build test` - Run unit tests
 - `make test-extension` or `zig build test-extension` - Test with DuckDB
-- `zig build duckdb` - Interactive DuckDB session
-- `make clean` or `zig build clean` - Clean build artifacts
-- `zig build docs` - Generate documentation
-- `make build-all-platforms` - Build for all supported platforms
+- `zig build duckdb` - Start an interactive DuckDB session (with the extension loaded)
+- `make clean` or `zig build clean` - Clean build artifacts and unnecessary files
+- `zig build docs` - Generate documentation (Zig API docs)
+- `make build-all-platforms` - Build for all supported platforms (OSes and hardware architectures)
 
 ---
 
@@ -143,14 +144,14 @@ All build tasks are managed through `zig build` or `make`:
 #### Project Structure
 
 ```
-├── build.zig              # Zig build configuration
-├── Makefile               # Wrapper around zig build (optional)
+├── build.zig             # Zig build configuration
+├── Makefile              # Wrapper around `zig build` that extends its functionality (optional)
 ├── src/
 │   ├── lib.zig           # Main extension code
 │   ├── lib_test.zig      # Unit tests for the extension
-│   ├── extension.c      # C entry point for the extension
-│   └── duckdb.zig        # DuckDB extension C API (translated to Zig)
-└── external/              # Git submodules (extension API)
+│   ├── extension.c       # C entry point for the extension
+│   └── duckdb.zig        # DuckDB extension API (translated to Zig from C)
+└── external/             # External depencies like Git submodules (extension API)
 ```
 
 ---
