@@ -17,6 +17,9 @@ env:
   ZIG_VERSION: 0.15.2
   DUCKDB_VERSION: v1.4.1
 
+permissions:
+  contents: read
+
 jobs:
   build-linux-amd64:
     name: Build Linux AMD64
