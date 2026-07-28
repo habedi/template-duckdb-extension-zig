@@ -80,10 +80,12 @@
             buildPhase = ''
               runHook preBuild
               export ZIG_GLOBAL_CACHE_DIR=$(mktemp -d)
+              # Use the `release` target rather than `build-all`, because a packaged artifact should be
+              # optimized; `build-all` leaves the build.zig default of Debug in place.
               # SHELL is overridden because the Makefile points it at /usr/bin/env, which does not exist
               # in the Nix build sandbox. ZIG is passed explicitly so the Makefile does not have to
               # resolve it with `which`.
-              make build-all \
+              make release \
                 SHELL=${pkgs.bash}/bin/bash \
                 ZIG=${pkgs.zig_0_16}/bin/zig \
                 PLATFORM=${duckdbPlatforms.${system}}

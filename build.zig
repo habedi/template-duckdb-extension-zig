@@ -129,28 +129,23 @@ pub fn build(b: *std.Build) void {
     // Interactive DuckDB session with extension loaded
     const duckdb_step = b.step("duckdb", "Start interactive DuckDB session with extension loaded");
 
-    // Create init file with extension loaded
-    const init_sql_content = b.fmt("echo \"LOAD '{s}'; SELECT 'Extension loaded successfully!' as status;\" > /tmp/duckdb_init.sql", .{installed_extension_path});
-    const create_init = b.addSystemCommand(&[_][]const u8{
-        "sh",
-        "-c",
-        init_sql_content,
-    });
-    create_init.step.dependOn(&metadata_cmd.step);
+    // Create the init file through a WriteFile step rather than a shell redirect.
+    // That keeps the step working on Windows.
+    const init_sql = b.fmt("LOAD '{s}'; SELECT 'Extension loaded successfully!' as status;\n", .{installed_extension_path});
+    const init_sql_file = b.addWriteFiles().add("duckdb_init.sql", init_sql);
 
     const run_duckdb = b.addSystemCommand(&[_][]const u8{
         "duckdb",
         "-unsigned",
         "-init",
-        "/tmp/duckdb_init.sql",
     });
-    run_duckdb.step.dependOn(&create_init.step);
+    run_duckdb.addFileArg(init_sql_file);
+    run_duckdb.stdio = .inherit;
+    run_duckdb.step.dependOn(&metadata_cmd.step);
     duckdb_step.dependOn(&run_duckdb.step);
 
     // Generate DuckDB Zig bindings from C API
     const gen_bindings_step = b.step("duckdb-translate", "Generate Zig bindings from DuckDB C API");
-    // Note: use the Zig running this build rather than whatever `zig` is on PATH, so the generated bindings
-    // match the toolchain that compiles them.
     const translate_cmd = b.addSystemCommand(&[_][]const u8{
         "sh",
         "-c",
@@ -198,8 +193,6 @@ fn detectPlatform(target: std.Build.ResolvedTarget) []const u8 {
         if (os_tag == .freebsd) return "freebsd_arm64";
     }
 
-    // Note: fail loudly instead of returning a placeholder. A bogus platform string is accepted by the
-    // metadata step and only rejected later by DuckDB at LOAD time, far away from the cause.
     std.debug.panic(
         "cannot detect the DuckDB platform for {s}-{s}, pass it with -Dplatform=<platform>",
         .{ @tagName(cpu_arch), @tagName(os_tag) },

@@ -4,16 +4,15 @@ This file provides guidance to coding agents collaborating on this repository.
 
 ## Mission
 
-This repository is a template for building DuckDB extensions in Zig.
-It is a starting point that other projects copy, rename, and extend, so its value comes from staying small,
-buildable, and easy to understand.
+This repository is a template for building DuckDB extensions in Zig. It is a starting point that other projects copy, rename, and extend, so its value
+comes from staying small, buildable, and easy to understand.
 
 It has three thin layers:
 
 1. A C entry point (`src/extension.c`) that uses the DuckDB C extension API to register SQL functions.
 2. Zig code (`src/lib.zig`) that implements logic and exports it with the C calling convention.
-3. A Zig build system (`build.zig`, wrapped by `Makefile`) that compiles the shared library, appends DuckDB extension
-   metadata, and cross-compiles for every supported platform.
+3. A Zig build system (`build.zig`, wrapped by `Makefile`) that compiles the shared library, appends DuckDB extension metadata, and cross-compiles for
+   every supported platform.
 
 Priorities, in order:
 
@@ -26,16 +25,14 @@ Priorities, in order:
 
 - Use English for code, comments, docs, tests, and commit messages.
 - Prefer focused fixes over broad refactoring.
-- Keep the template minimal. Do not add example functions, abstractions, or dependencies that a template user would have
-  to delete.
-- Treat `src/duckdb.zig` as generated code. If the DuckDB C API headers change, regenerate it with
-  `make duckdb-translate`.
+- Keep the template minimal. Do not add example functions, abstractions, or dependencies that a template user would have to delete.
+- Treat `src/duckdb.zig` as generated code. If the DuckDB C API headers change, regenerate it with `make duckdb-translate`.
 - Do not edit vendored code under `external/`. That directory is the `duckdb/extension-template-c` Git submodule.
-- Do not raise `EXTENSION_API_VERSION` above `v1.2.0` without a stated reason, because a higher API version narrows the
-  range of DuckDB versions that can load the built extension.
+- Do not raise `EXTENSION_API_VERSION` above `v1.2.0` without a stated reason, because a higher API version narrows the range of DuckDB versions that
+  can load the built extension.
 - Keep the extension name configurable. Nothing outside the default value should hardcode `extension` as the name.
-- Keep `README.md`, `Makefile`, and `build.zig` consistent with each other. A documented command must exist, and an
-  existing command should be documented.
+- Keep `README.md`, `Makefile`, and `build.zig` consistent with each other. A documented command must exist, and an existing command should be
+  documented.
 - Do not add new dependencies, network behavior, or background processes unless the requirement clearly calls for them.
 
 ## Writing Style
@@ -43,35 +40,31 @@ Priorities, in order:
 - Use Oxford commas in inline lists: "a, b, and c" not "a, b, c".
 - Do not use em dashes. Restructure the sentence, or use a colon or semicolon instead.
 - Avoid colorful adjectives, adverbs, and pretentious language. Write "build step" not "blazing build step".
-- Prefer noun phrases for checklist items over imperative verbs. Write "metadata step verification" not "verify the
-  metadata step".
-- Headings in Markdown files must be in title case: "Build from Source" not "Build from source". Minor words
-  (a, an, the, and, but, or, for, in, on, at, to, by, of) stay lowercase unless they are the first word.
-- Do not bold the lead-in of a list item. Write "Cross-compilation targets: ..." not
-  "**Cross-compilation targets**: ...".
-- Use sentence case for the lead-in of a list item. Write "Platform detection: ..." not "Platform Detection: ...".
-  Proper nouns keep their capitals.
-- Capitalize only the first part of a hyphenated compound: "Cross-platform Builds" in a heading, "Cross-compiled" at the
-  start of a sentence, and "cross-platform builds" elsewhere. Never write "Cross-Platform".
-- Start each sentence with a capital letter, capitalize proper nouns (Zig, DuckDB, Python, GNU Make), and leave common
-  nouns lowercase in the middle of a sentence.
+- Prefer noun phrases for checklist items over imperative verbs. Write "metadata step verification" not "verify the metadata step".
+- Headings in Markdown files must be in title case: "Build from Source" not "Build from source". Minor words (a, an, the, and, but, or, for, in, on,
+  at, to, by, of) stay lowercase unless they are the first word.
+- Do not bold the lead-in of a list item. Write "Cross-compilation targets: ..." not "**Cross-compilation targets**: ...".
+- Use sentence case for the lead-in of a list item. Write "Platform detection: ..." not "Platform Detection: ...". Proper nouns keep their capitals.
+- Capitalize only the first part of a hyphenated compound: "Cross-platform Builds" in a heading, "Cross-compiled" at the start of a sentence, and
+  "cross-platform builds" elsewhere. Never write "Cross-Platform".
+- Start each sentence with a capital letter, capitalize proper nouns (Zig, DuckDB, Python, GNU Make), and leave common nouns lowercase in the middle
+  of a sentence.
 - Write correct and complete sentences.
 - Avoid made-up words.
-- Do not use a colon in place of a verb. Three uses are fine: joining two clauses inside a complete sentence (the
-  replacement the em-dash rule above calls for), introducing the gloss of a list item, and introducing an enumeration,
-  whether as a list or inline ("Steps: `build-all`, `test-extension`, ..."). What a colon must not do is turn a sentence
-  into a label and a definition: write "Appends the DuckDB metadata, then writes the loadable extension file" rather
-  than "Metadata step: appends the DuckDB metadata". That shape belongs to a list item, and carrying it into prose (a
-  doc comment summary, a paragraph) leaves a fragment where a sentence was required.
+- Do not use a colon in place of a verb. Three uses are fine: joining two clauses inside a complete sentence (the replacement the em-dash rule above
+  calls for), introducing the gloss of a list item, and introducing an enumeration, whether as a list or inline ("Steps: `build-all`,
+  `test-extension`, ..."). What a colon must not do is turn a sentence into a label and a definition: write "Appends the DuckDB metadata, then writes
+  the loadable extension file" rather than "Metadata step: appends the DuckDB metadata". That shape belongs to a list item, and carrying it into prose
+  (a doc comment summary, a paragraph) leaves a fragment where a sentence was required.
 - Use participial phrases and abbreviations scarcely.
 
 ## Repository Layout
 
-- `build.zig`: Zig build script. It defines the library artifact, build options, platform detection, and every build
-  step (`test`, `clean`, `add-metadata`, `build-all`, `test-extension`, `duckdb`, `duckdb-translate`, and `docs`).
+- `build.zig`: Zig build script. It defines the library artifact, build options, platform detection, and every build step (`test`, `clean`,
+  `add-metadata`, `build-all`, `test-extension`, `duckdb`, `duckdb-translate`, and `docs`).
 - `Makefile`: GNU Make wrapper around `zig build` that adds cross-compilation targets, formatting, and Git hook setup.
-- `src/extension.c`: C entry point. It declares the DuckDB API with `DUCKDB_EXTENSION_EXTERN` and registers the SQL
-  functions inside `DUCKDB_EXTENSION_ENTRYPOINT`.
+- `src/extension.c`: C entry point. It declares the DuckDB API with `DUCKDB_EXTENSION_EXTERN` and registers the SQL functions inside
+  `DUCKDB_EXTENSION_ENTRYPOINT`.
 - `src/lib.zig`: Zig implementation exported to C. Currently `zig_add_numbers`.
 - `src/lib_test.zig`: Zig unit tests. It is a separate root so tests run without the DuckDB runtime.
 - `src/duckdb.zig`: Zig bindings translated from the DuckDB C API headers, exposed as the `duckdb` module.
@@ -88,69 +81,63 @@ Priorities, in order:
 
 ### C Layer
 
-`src/extension.c` owns everything that talks to DuckDB: scalar function creation, logical types, parameter and return
-types, validity mask handling, registration, and error reporting through `access->set_error`.
-The template registers two functions, `add_numbers_zig(bigint, bigint)` returning `bigint`, and `extension_version()`
-returning `varchar`.
+`src/extension.c` owns everything that talks to DuckDB: scalar function creation, logical types, parameter and return types, validity mask handling,
+registration, and error reporting through `access->set_error`. The template registers two functions, `add_numbers_zig(bigint, bigint)` returning
+`bigint`, and `extension_version()` returning `varchar`.
 
 Because the extension is built against the C extension API, DuckDB symbols are resolved at load time.
-`build.zig` sets `linker_allow_shlib_undefined = true` for that reason, so undefined DuckDB symbols in the built library
-are expected and not a build error.
+`build.zig` sets `linker_allow_shlib_undefined = true` for that reason, so undefined DuckDB symbols in the built library are expected and not a build
+error.
 
 ### Zig Layer
 
-Zig functions that C calls must be `pub export` with `callconv(.c)` and use C ABI compatible types.
-Keep DuckDB vector access in the C layer and keep the Zig layer free of DuckDB types, so that Zig logic stays testable
-without the DuckDB runtime.
+Zig functions that C calls must be `pub export` with `callconv(.c)` and use C ABI compatible types. Keep DuckDB vector access in the C layer and keep
+the Zig layer free of DuckDB types, so that Zig logic stays testable without the DuckDB runtime.
 
-If Zig code needs the DuckDB C API directly, import the `duckdb` module defined in `build.zig` rather than declaring
-`extern` signatures by hand.
+If Zig code needs the DuckDB C API directly, import the `duckdb` module defined in `build.zig` rather than declaring `extern` signatures by hand.
 
 ### Build Integration
 
-`zig build` produces a plain shared library (`libextension.so`, `libextension.dylib`, or `extension.dll`).
-That file is not loadable by DuckDB on its own.
-The `add-metadata` step runs `external/extension-template-c/extension-ci-tools/scripts/append_extension_metadata.py`,
-which appends the extension name, extension version, platform, and API version, and writes
-`zig-out/lib/<extension-name>.duckdb_extension`.
-For this reason, `build-all` is the useful build target, `build` alone is not, and Python 3 is a build dependency.
+`zig build` produces a plain shared library (`libextension.so`, `libextension.dylib`, or `extension.dll`). That file is not loadable by DuckDB on its
+own. The `add-metadata` step runs `external/extension-template-c/extension-ci-tools/scripts/append_extension_metadata.py`, which appends the extension
+name, extension version, platform, and API version, and writes `zig-out/lib/<extension-name>.duckdb_extension`. For this reason, `build-all` is the
+useful build target, `build` alone is not, and Python 3 is a build dependency.
 
 Windows is a special case in two places: the DLL is installed under `bin` rather than `lib`, and it has no `lib` prefix.
 `getLibFilename` in `build.zig` handles both.
 
-Cross-compilation targets in the `Makefile` pass `-Dtarget` and `-Dplatform` explicitly, then copy the result into
-`zig-out/lib/<platform>/`.
-The `-Dplatform` value must be the DuckDB platform string, such as `linux_amd64`, `osx_arm64`, or `windows_amd64`,
-not the Zig target triple.
-When adding a platform, update `detectPlatform` in `build.zig`, the `Makefile` target, `build-all-platforms`, and
-`.github/workflows/builds.yml` together.
+Cross-compilation targets in the `Makefile` pass `-Dtarget` and `-Dplatform` explicitly, then copy the result into `zig-out/lib/<platform>/`. The
+`-Dplatform` value must be the DuckDB platform string, such as `linux_amd64`, `osx_arm64`, or `windows_amd64`, not the Zig target triple. When adding
+a platform, update `detectPlatform` in `build.zig`, the `Makefile` target, `build-all-platforms`, and `.github/workflows/builds.yml` together.
+`detectPlatform` fails the build for a host it does not recognize, rather than returning a placeholder that DuckDB would only reject later at load
+time.
+
+Optimization mode is split deliberately. Host builds through `build` and `build-all` stay at the `build.zig` default of `Debug`, so development keeps
+the safety checks on, while `release` and the cross-compilation targets pass `-Doptimize=$(RELEASE_MODE)`, which defaults to `ReleaseFast`. Everything
+meant for distribution therefore ships optimized, including the CI artifacts and the Nix package, which builds through `make release` for that reason.
+Do not set `preferred_optimize_mode` in `standardOptimizeOption`, because it removes the `-Doptimize` option and replaces it with `-Drelease`, which
+breaks every caller above.
 
 ### Toolchain
 
-`build.zig` targets Zig 0.16.0, which is the version CI pins and `README.md` documents.
-It also builds under 0.15.1 and 0.15.2.
+`build.zig` targets Zig 0.16.0, which is the version CI pins and `README.md` documents. It also builds under 0.15.1 and 0.15.2.
 
-That range works because the C source file, include path, macros, and libc are configured on the module returned by
-`b.createModule`, not on the library step returned by `b.addLibrary`.
-Zig 0.16.0 removed the `Build.Step.Compile` wrappers for those, including `addCSourceFile`, `addIncludePath`, and
-`linkLibC`, while the `Build.Module` methods are identical across all three versions.
-Keep the configuration on the module, since moving it back to the library step breaks the 0.16.0 build.
+That range works because the C source file, include path, macros, and libc are configured on the module returned by `b.createModule`, not on the
+library step returned by `b.addLibrary`. Zig 0.16.0 removed the `Build.Step.Compile` wrappers for those, including `addCSourceFile`, `addIncludePath`,
+and `linkLibC`, while the `Build.Module` methods are identical across all three versions. Keep the configuration on the module, since moving it back
+to the library step breaks the 0.16.0 build.
 
-The `Makefile` prefers `$(HOME)/.local/share/zig/0.16.0/zig` when that file exists, and falls back to the `zig` on
-`PATH`.
-Override it with `make <target> ZIG=/path/to/zig` to check another version.
-Zig build API changes between minor versions, so when a `build.zig` step fails to compile, check which Zig version is
-running before changing the code.
+The `Makefile` prefers `$(HOME)/.local/share/zig/0.16.0/zig` when that file exists, and falls back to the `zig` on `PATH`. Override it with
+`make <target> ZIG=/path/to/zig` to check another version. Zig build API changes between minor versions, so when a `build.zig` step fails to compile,
+check which Zig version is running before changing the code.
 
-`nix develop` provides Zig 0.16.0, DuckDB, Python 3, `clang-format`, and `pre-commit`.
-It pins `zig_0_16` rather than `zig`, so the shell does not follow nixpkgs when the default Zig moves on.
-Inside that shell the `Makefile` still prefers `$(HOME)/.local/share/zig/0.16.0/zig` when it exists, which silently
-bypasses the pinned toolchain, so pass `ZIG=$(command -v zig)` to use the version the shell provides.
+`nix develop` provides Zig 0.16.0, DuckDB, Python 3, `clang-format`, and `pre-commit`. It pins `zig_0_16` rather than `zig`, so the shell does not
+follow nixpkgs when the default Zig moves on. Inside that shell the `Makefile` still prefers `$(HOME)/.local/share/zig/0.16.0/zig` when it exists,
+which silently bypasses the pinned toolchain, so pass `ZIG=$(command -v zig)` to use the version the shell provides.
 
-`nix build` needs the submodules, which a plain flake source does not carry, so run it as `nix build '.?submodules=1'`.
-The derivation sets `dontStrip` and `dontPatchELF`, because a DuckDB extension keeps its metadata in a footer after the
-ELF image, and both `strip` and `patchelf` rewrite the file and discard that footer.
-It also overrides `SHELL`, since the `Makefile` points it at `/usr/bin/env`, which the Nix build sandbox lacks.
+`nix build` needs the submodules, which a plain flake source does not carry, so run it as `nix build '.?submodules=1'`. The derivation sets
+`dontStrip` and `dontPatchELF`, because a DuckDB extension keeps its metadata in a footer after the ELF image, and both `strip` and `patchelf` rewrite
+the file and discard that footer. It also overrides `SHELL`, since the `Makefile` points it at `/usr/bin/env`, which the Nix build sandbox lacks.
 
 ## Generated and Derived Files
 
@@ -163,20 +150,18 @@ It also overrides `SHELL`, since the `Makefile` points it at `/usr/bin/env`, whi
 - Target Zig 0.16.0 as the supported version, and keep `build.zig` building on 0.15.1 and 0.15.2 as well.
 - Format with `zig fmt` through `make format`, and check with `make lint`.
 - Use 4 space indentation and the line limits in `.editorconfig`.
-- Prefer explicit error sets and error unions over panics. Never let a Zig error propagate as a panic across the C
-  boundary, because a panic in a loaded extension takes down the DuckDB process.
+- Prefer explicit error sets and error unions over panics. Never let a Zig error propagate as a panic across the C boundary, because a panic in a
+  loaded extension takes down the DuckDB process.
 - Keep exported symbol names stable, since `src/extension.c` forward declares them.
 
 ## C Conventions
 
 - Compile against C11, which is the standard set in `build.zig`.
 - Format with `clang-format` through `make format`.
-- Use the DuckDB C API in `external/extension-template-c/duckdb_capi/duckdb.h` as the reference, not memory of older
-  APIs.
-- Destroy every DuckDB object you create, including on error paths. Scalar functions and logical types both need their
-  matching `duckdb_destroy_*` call.
-- Handle validity masks. An input row can be NULL, and the result mask needs
-  `duckdb_vector_ensure_validity_writable` before it is written.
+- Use the DuckDB C API in `external/extension-template-c/duckdb_capi/duckdb.h` as the reference, not memory of older APIs.
+- Destroy every DuckDB object you create, including on error paths. Scalar functions and logical types both need their matching `duckdb_destroy_*`
+  call.
+- Handle validity masks. An input row can be NULL, and the result mask needs `duckdb_vector_ensure_validity_writable` before it is written.
 - Return `false` from the entry point after calling `access->set_error` when registration fails.
 
 ## SQL Conventions
@@ -194,10 +179,10 @@ Run the narrowest relevant checks, then expand if the change crosses layers.
 | Formatting           | `make format`              | Any Zig or C code changed                            |
 | Format check         | `make lint`                | Any Zig code changed                                 |
 | Unit tests           | `make test`                | Zig logic changed                                    |
-| Loadable build       | `make build-all`           | C code, `build.zig`, or the metadata step changed     |
-| Load smoke test      | `zig build test-extension` | Registration, signatures, or the entry point changed  |
+| Loadable build       | `make build-all`           | C code, `build.zig`, or the metadata step changed    |
+| Load smoke test      | `zig build test-extension` | Registration, signatures, or the entry point changed |
 | Interactive check    | `zig build duckdb`         | SQL-facing behavior changed                          |
-| Cross-compilation    | `make build-all-platforms` | Platform detection, targets, or linkage changed       |
+| Cross-compilation    | `make build-all-platforms` | Platform detection, targets, or linkage changed      |
 | Bindings regenerated | `make duckdb-translate`    | The vendored DuckDB C API headers changed            |
 
 Minimum expectations:
@@ -207,9 +192,8 @@ Minimum expectations:
 - Build system changes: `make build-all` plus at least one cross-compilation target.
 - Documentation changes: no build required, but verify that every command mentioned actually exists.
 
-`zig build test-extension` and `zig build duckdb`, along with their `make` equivalents, need a `duckdb` binary on `PATH`
-of version 1.2.0 or later.
-If it is missing, say so instead of reporting the check as passed.
+`zig build test-extension` and `zig build duckdb`, along with their `make` equivalents, need a `duckdb` binary on `PATH` of version 1.2.0 or later. If
+it is missing, say so instead of reporting the check as passed.
 
 ## Testing Expectations
 
@@ -221,37 +205,36 @@ If it is missing, say so instead of reporting the check as passed.
 ### Red-green Workflow
 
 For Zig logic in `src/lib.zig`, write the test first and run it before the implementation exists.
-`make test` compiles and runs `src/lib_test.zig` in well under a second and needs no DuckDB binary, so there is no cost
-argument for skipping the red state.
-Confirm that the test fails for the reason you expect, because a test that fails on a compile error has not yet
-demonstrated anything about behavior.
-Implement, then run `make test` again for the green state.
+`make test` compiles and runs `src/lib_test.zig` in well under a second and needs no DuckDB binary, so there is no cost argument for skipping the red
+state. Confirm that the test fails for the reason you expect, because a test that fails on a compile error has not yet demonstrated anything about
+behavior. Implement, then run `make test` again for the green state.
 
-The C registration layer in `src/extension.c` is exempt from the strict cycle.
-Its regressions surface through `zig build test-extension`, which needs a full `build-all` and a `duckdb` binary, and a
-failure there is usually a link or metadata error rather than a failing assertion.
-The narrower requirement for that layer is to extend the smoke test query in the same commit as the registration change,
-so a new function is covered the moment it lands.
+The C registration layer in `src/extension.c` is exempt from the strict cycle. Its regressions surface through `zig build test-extension`, which needs
+a full `build-all` and a `duckdb` binary, and a failure there is usually a link or metadata error rather than a failing assertion. The narrower
+requirement for that layer is to extend the smoke test query in the same commit as the registration change, so a new function is covered the moment it
+lands.
 
-Do not delete, skip, or weaken a test to reach green.
-If a test blocks a change and the test itself is wrong, fix it as a separate step and say that you did.
+Do not delete, skip, or weaken a test to reach green. If a test blocks a change and the test itself is wrong, fix it as a separate step and say that
+you did.
 
 ## Known Gaps
 
-Every `Makefile` target now maps to something the repository provides, so treat a failing target as a regression rather
-than as an unimplemented feature. Two rough edges remain:
+Every `Makefile` target now maps to something the repository provides, so treat a failing target as a regression rather than as an unimplemented
+feature. Two rough edges remain:
 
-- The `Makefile` prefers `$(HOME)/.local/share/zig/0.16.0/zig` over the `zig` on `PATH`, so inside `nix develop` it uses
-  the host toolchain instead of the pinned one. See "Toolchain" above.
-- `duckdb-translate` rewrites `src/duckdb.zig` through a shell redirect, so an interrupted or failing run truncates the
-  file. Restore it with `git checkout src/duckdb.zig`.
+- The `Makefile` prefers `$(HOME)/.local/share/zig/0.16.0/zig` over the `zig` on `PATH`, so inside `nix develop` it uses the host toolchain instead of
+  the pinned one. See "Toolchain" above.
+- `duckdb-translate` rewrites `src/duckdb.zig` through a shell redirect, so an interrupted or failing run truncates the file. Restore it with
+  `git checkout src/duckdb.zig`.
 
 Two traps are worth knowing, because both once produced silently wrong output rather than an error:
 
-- The library filename must follow `-Dextension-name`. When `getLibFilename` hardcoded `libextension.so`, the metadata
-  step either failed on a clean tree or, worse, read a stale default-named library and stamped it with the new name.
-- `PLATFORM` must stay empty by default in the `Makefile`, so that `detectPlatform` in `build.zig` decides. Hardcoding
-  it made `make build-all` label every host build `linux_amd64`, including on ARM.
+- The library filename must follow `-Dextension-name`. When `getLibFilename` hardcoded `libextension.so`, the metadata step either failed on a clean
+  tree or, worse, read a stale default-named library and stamped it with the new name.
+- Every `Makefile` target that invokes `zig build` must forward `-Dextension-name`. The `duckdb` target once forwarded only the platform, so a custom
+  name silently rebuilt and loaded the default extension.
+- `PLATFORM` must stay empty by default in the `Makefile`, so that `detectPlatform` in `build.zig` decides. Hardcoding it made `make build-all` label
+  every host build `linux_amd64`, including on ARM.
 
 If a task adds a `Makefile` target, keep `README.md` and `make help` in step with it.
 

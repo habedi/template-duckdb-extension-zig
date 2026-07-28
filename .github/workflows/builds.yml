@@ -71,7 +71,7 @@ jobs:
 
   build-linux-arm64:
     name: Build Linux ARM64
-    runs-on: ubuntu-24.04-arm64
+    runs-on: ubuntu-24.04-arm
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -163,7 +163,7 @@ jobs:
 
   build-linux-arm64-musl:
     name: Build Linux ARM64 (musl)
-    runs-on: ubuntu-24.04-arm64
+    runs-on: ubuntu-24.04-arm
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -207,7 +207,7 @@ jobs:
 
   build-macos-amd64:
     name: Build macOS AMD64
-    runs-on: macos-13
+    runs-on: macos-15-intel
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -397,6 +397,96 @@ jobs:
           path: zig-out/lib/windows_arm64/extension.duckdb_extension
           if-no-files-found: error
 
+  # Note: the FreeBSD jobs cross-compile on Linux and only verify the artifact, because the runners
+  # cannot execute a FreeBSD binary and so cannot run the load smoke test.
+  build-freebsd-amd64:
+    name: Build FreeBSD AMD64
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup Zig
+        uses: goto-bus-stop/setup-zig@v2
+        with:
+          version: ${{ env.ZIG_VERSION }}
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Build extension
+        run: |
+          make build-freebsd-amd64 \
+            EXTENSION_NAME=${{ env.EXTENSION_NAME }} \
+            EXTENSION_API_VERSION=${{ env.EXTENSION_API_VERSION }} \
+            EXTENSION_VERSION=${{ env.EXTENSION_VERSION }}
+
+      - name: Verify build artifact
+        run: |
+          if [ -f "zig-out/lib/freebsd_amd64/extension.duckdb_extension" ]; then
+            echo "Extension built successfully"
+            file zig-out/lib/freebsd_amd64/extension.duckdb_extension
+            ls -lh zig-out/lib/freebsd_amd64/extension.duckdb_extension
+          else
+            echo "Extension file not found"
+            exit 1
+          fi
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: extension-freebsd-amd64
+          path: zig-out/lib/freebsd_amd64/extension.duckdb_extension
+          if-no-files-found: error
+
+  build-freebsd-arm64:
+    name: Build FreeBSD ARM64
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup Zig
+        uses: goto-bus-stop/setup-zig@v2
+        with:
+          version: ${{ env.ZIG_VERSION }}
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Build extension
+        run: |
+          make build-freebsd-arm64 \
+            EXTENSION_NAME=${{ env.EXTENSION_NAME }} \
+            EXTENSION_API_VERSION=${{ env.EXTENSION_API_VERSION }} \
+            EXTENSION_VERSION=${{ env.EXTENSION_VERSION }}
+
+      - name: Verify build artifact
+        run: |
+          if [ -f "zig-out/lib/freebsd_arm64/extension.duckdb_extension" ]; then
+            echo "Extension built successfully"
+            file zig-out/lib/freebsd_arm64/extension.duckdb_extension
+            ls -lh zig-out/lib/freebsd_arm64/extension.duckdb_extension
+          else
+            echo "Extension file not found"
+            exit 1
+          fi
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: extension-freebsd-arm64
+          path: zig-out/lib/freebsd_arm64/extension.duckdb_extension
+          if-no-files-found: error
+
   summary:
     name: Build Summary
     runs-on: ubuntu-latest
@@ -409,6 +499,8 @@ jobs:
       - build-macos-arm64
       - build-windows-amd64
       - build-windows-arm64
+      - build-freebsd-amd64
+      - build-freebsd-arm64
     if: always()
     steps:
       - name: Download all artifacts
