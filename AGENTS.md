@@ -126,12 +126,18 @@ When adding a platform, update `detectPlatform` in `build.zig`, the `Makefile` t
 
 ### Toolchain
 
-`build.zig` targets Zig 0.15.2, which is the version CI pins and `README.md` documents.
-It does not compile under Zig 0.16.0, where `Build.Step.Compile.addCSourceFile` no longer exists.
+`build.zig` targets Zig 0.16.0, which is the version CI pins and `README.md` documents.
+It also builds under 0.15.1 and 0.15.2.
+
+That range works because the C source file, include path, macros, and libc are configured on the module returned by
+`b.createModule`, not on the library step returned by `b.addLibrary`.
+Zig 0.16.0 removed the `Build.Step.Compile` wrappers for those, including `addCSourceFile`, `addIncludePath`, and
+`linkLibC`, while the `Build.Module` methods are identical across all three versions.
+Keep the configuration on the module, since moving it back to the library step breaks the 0.16.0 build.
 
 The `Makefile` prefers `$(HOME)/.local/share/zig/0.16.0/zig` when that file exists, and falls back to the `zig` on
-`PATH`, so on a machine with 0.16.0 installed every `make` target that invokes `zig build` fails on `build.zig` itself.
-Override it with `make <target> ZIG=/path/to/0.15.2/zig` until the default is corrected.
+`PATH`.
+Override it with `make <target> ZIG=/path/to/zig` to check another version.
 Zig build API changes between minor versions, so when a `build.zig` step fails to compile, check which Zig version is
 running before changing the code.
 
@@ -143,7 +149,7 @@ running before changing the code.
 
 ## Zig Conventions
 
-- Target Zig 0.15.2 as the supported version, and keep `build.zig` working on it.
+- Target Zig 0.16.0 as the supported version, and keep `build.zig` building on 0.15.1 and 0.15.2 as well.
 - Format with `zig fmt` through `make format`, and check with `make lint`.
 - Use 4 space indentation and the line limits in `.editorconfig`.
 - Prefer explicit error sets and error unions over panics. Never let a Zig error propagate as a panic across the C
@@ -181,7 +187,7 @@ Run the narrowest relevant checks, then expand if the change crosses layers.
 | Load smoke test      | `zig build test-extension` | Registration, signatures, or the entry point changed  |
 | Interactive check    | `zig build duckdb`         | SQL-facing behavior changed                          |
 | Cross-compilation    | `make build-all-platforms` | Platform detection, targets, or linkage changed       |
-| Bindings regenerated | `make duckdb-translate`    | The vendored DuckDB C API headers changed            |
+| Bindings regenerated | `make duckdb-translate`    | The vendored DuckDB C API headers changed, see below |
 
 Minimum expectations:
 
@@ -231,7 +237,10 @@ code to work around, and do not present their output as a passing check:
   behavior, not the MkDocs one.
 - `make help` mentions `build.zig.zon` as the source of the extension version, but that file does not exist, and the
   version comes from `EXTENSION_VERSION` and `-Dextension-version`.
-- The `Makefile` default `ZIG` prefers a Zig 0.16.0 install, which cannot compile `build.zig`. See "Toolchain" above.
+- `duckdb-translate` passes `external/extension-template-c/duckdb_extension.h`, which does not exist. The header sits in
+  the `duckdb_capi` subdirectory, so the step fails with `error: CacheCheckFailed`, which is what Zig reports for a
+  missing input file. The failure is destructive, because the shell redirect truncates `src/duckdb.zig` before `zig`
+  runs. Restore it with `git checkout src/duckdb.zig` after a failed run.
 
 If a task touches one of these, either implement the missing piece or remove the target, and update `README.md` to
 match.

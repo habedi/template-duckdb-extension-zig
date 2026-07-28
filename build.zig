@@ -21,8 +21,22 @@ pub fn build(b: *std.Build) void {
         .root_source_file = b.path("src/lib.zig"),
         .target = target,
         .optimize = optimize,
+        .link_libc = true,
     });
     root_module.addImport("duckdb", duckdb_module);
+
+    // Add the C source file that handles DuckDB API integration
+    root_module.addCSourceFile(.{
+        .file = b.path("src/extension.c"),
+        .flags = &.{"-std=c11"},
+    });
+
+    // Add include path for DuckDB headers
+    root_module.addIncludePath(b.path("external/extension-template-c/duckdb_capi"));
+
+    // Add C macro for extension name
+    root_module.addCMacro("DUCKDB_EXTENSION_NAME", extension_name);
+    root_module.addCMacro("DUCKDB_BUILD_LOADABLE_EXTENSION", "1");
 
     const lib = b.addLibrary(.{
         .name = extension_name,
@@ -32,22 +46,6 @@ pub fn build(b: *std.Build) void {
 
     const extension_filename = b.fmt("{s}.duckdb_extension", .{extension_name});
     lib.install_name = extension_filename;
-
-    // Add the C source file that handles DuckDB API integration
-    lib.addCSourceFile(.{
-        .file = b.path("src/extension.c"),
-        .flags = &.{"-std=c11"},
-    });
-
-    // Add include path for DuckDB headers
-    lib.addIncludePath(b.path("external/extension-template-c/duckdb_capi"));
-
-    // Link libc (required for C code)
-    lib.linkLibC();
-
-    // Add C macro for extension name
-    lib.root_module.addCMacro("DUCKDB_EXTENSION_NAME", extension_name);
-    lib.root_module.addCMacro("DUCKDB_BUILD_LOADABLE_EXTENSION", "1");
 
     // Allow undefined symbols - they will be provided by DuckDB at runtime
     lib.linker_allow_shlib_undefined = true;
