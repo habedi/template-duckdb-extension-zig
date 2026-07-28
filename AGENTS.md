@@ -238,26 +238,22 @@ If a test blocks a change and the test itself is wrong, fix it as a separate ste
 
 ## Known Gaps
 
-The `Makefile` currently documents more than the repository provides. Treat these as unimplemented rather than broken
-code to work around, and do not present their output as a passing check:
+Every `Makefile` target now maps to something the repository provides, so treat a failing target as a regression rather
+than as an unimplemented feature. Two rough edges remain:
 
-- `test-unit`, `test-property`, and `test-integration` call `zig build` steps that `build.zig` does not define.
-- `test-sql` expects `tests/sql/*.sql`, and `bench` expects `benches/run.sh`. Neither directory exists.
-- `docs` and `docs-serve` run MkDocs, but there is no `mkdocs.yml`, and `build.zig` has its own `docs` step that emits
-  Zig API documentation into `docs/api`. The `docs.yml` workflow publishes `docs/api`, so it depends on the `build.zig`
-  behavior, not the MkDocs one.
-- The extension version cannot be set through `make`. `make help` names `build.zig.zon` as its source, but that file
-  does not exist, and no target references `EXTENSION_VERSION` or passes `-Dextension-version`, even though `README.md`
-  documents the variable and `builds.yml` passes it. The metadata therefore always records the `build.zig` default of
-  `v0.1.0`. Set it with `zig build build-all -Dextension-version=...` until the `Makefile` forwards it.
 - The `Makefile` prefers `$(HOME)/.local/share/zig/0.16.0/zig` over the `zig` on `PATH`, so inside `nix develop` it uses
   the host toolchain instead of the pinned one. See "Toolchain" above.
+- `duckdb-translate` rewrites `src/duckdb.zig` through a shell redirect, so an interrupted or failing run truncates the
+  file. Restore it with `git checkout src/duckdb.zig`.
 
-Note that `duckdb-translate` rewrites `src/duckdb.zig` through a shell redirect, so an interrupted or failing run
-truncates the file. Restore it with `git checkout src/duckdb.zig`.
+Two traps are worth knowing, because both once produced silently wrong output rather than an error:
 
-If a task touches one of these, either implement the missing piece or remove the target, and update `README.md` to
-match.
+- The library filename must follow `-Dextension-name`. When `getLibFilename` hardcoded `libextension.so`, the metadata
+  step either failed on a clean tree or, worse, read a stale default-named library and stamped it with the new name.
+- `PLATFORM` must stay empty by default in the `Makefile`, so that `detectPlatform` in `build.zig` decides. Hardcoding
+  it made `make build-all` label every host build `linux_amd64`, including on ARM.
+
+If a task adds a `Makefile` target, keep `README.md` and `make help` in step with it.
 
 ## Change Design Checklist
 

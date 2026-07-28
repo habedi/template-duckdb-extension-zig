@@ -28,7 +28,7 @@ I'm sharing this template here in case it can be useful to others.
 ### Features
 
 - All build tasks can be managed using `build.zig` or `Makefile` (if you prefer GNU Make)
-- Built-in support for cross-compilation (for Linux, macOS, and Windows; and different hardware architectures)
+- Built-in support for cross-compilation (for Linux, macOS, Windows, and FreeBSD; and different hardware architectures)
 - Very fast builds; no need to build DuckDB from source
 - Built extensions are version-agnostic and work with DuckDB 1.2.0 and later
 
@@ -44,10 +44,12 @@ I'm sharing this template here in case it can be useful to others.
 #### Prerequisites
 
 - Zig 0.16.0
-- Python 3
+- Python 3 (needed for appending the extension metadata)
 - DuckDB 1.2.0 or later (recommended for testing the extension)
 - GNU Make (optional, for convenience)
 - Git
+
+Alternatively, you can use Nix to create the build environment by running `nix develop` in the root of the project.
 
 #### Quick Start
 
@@ -100,8 +102,8 @@ The build system supports several configurable variables:
 
 - `EXTENSION_NAME` - Name of the extension (default: "extension")
 - `EXTENSION_API_VERSION` - DuckDB Extension API version (default: "v1.2.0"; normally you don't need to change this)
-- `EXTENSION_VERSION` - Your extension version (default: "v0.1.0")
-- `PLATFORM` - Target platform (default: auto-detected)
+- `EXTENSION_VERSION` - Your extension version, recorded in the extension metadata (default: "v0.1.0")
+- `PLATFORM` - DuckDB platform string such as `linux_amd64` or `osx_arm64` (default: detected from the build target)
 
 Example:
 
@@ -127,12 +129,16 @@ All build tasks are managed through `zig build` or `make`:
 
 - `make build` or `zig build` - Build the extension
 - `make build-all` or `zig build build-all` - Build with DuckDB metadata added to the extension
+- `make release` - Build with metadata in `ReleaseFast` mode
 - `make test` or `zig build test` - Run unit tests
-- `make test-extension` or `zig build test-extension` - Test with DuckDB
-- `zig build duckdb` - Start an interactive DuckDB session (with the extension loaded)
+- `make test-extension` or `zig build test-extension` - Load the built extension in DuckDB to check it
+- `make duckdb` or `zig build duckdb` - Start an interactive DuckDB session (with the extension loaded)
+- `make lint` and `make format` - Check and apply formatting for Zig and C files
 - `make clean` or `zig build clean` - Clean build artifacts and unnecessary files
-- `zig build docs` - Generate documentation (Zig API docs)
+- `make docs` or `zig build docs` - Generate documentation (Zig API docs)
+- `make duckdb-translate` - Regenerate `src/duckdb.zig` from the vendored DuckDB C API headers
 - `make build-all-platforms` - Build for all supported platforms (OSes and hardware architectures)
+- `make setup-hooks` - Install the pre-commit and pre-push Git hooks
 
 ---
 
@@ -145,6 +151,7 @@ All build tasks are managed through `zig build` or `make`:
 ```
 ├── build.zig             # Zig build configuration
 ├── Makefile              # Wrapper around `zig build` that extends its functionality (optional)
+├── flake.nix             # Nix development shell and package build (optional)
 ├── src/
 │   ├── lib.zig           # Main extension code
 │   ├── lib_test.zig      # Unit tests for the extension

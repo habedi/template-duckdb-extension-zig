@@ -81,7 +81,7 @@ pub fn build(b: *std.Build) void {
     clean_step.dependOn(&clean_cmd.step);
 
     // Detect the library file extension based on target OS
-    const lib_filename = getLibFilename(b, target);
+    const lib_filename = getLibFilename(b, target, extension_name);
     // Windows DLLs go to bin/, other platforms go to lib/
     const os_tag = target.result.os.tag;
     const lib_path = if (os_tag == .windows)
@@ -185,9 +185,12 @@ fn detectPlatform(target: std.Build.ResolvedTarget) []const u8 {
         if (os_tag == .linux) return "linux_amd64";
         if (os_tag == .macos) return "osx_amd64";
         if (os_tag == .windows) return "windows_amd64";
+        if (os_tag == .freebsd) return "freebsd_amd64";
     } else if (cpu_arch == .aarch64) {
         if (os_tag == .linux) return "linux_arm64";
         if (os_tag == .macos) return "osx_arm64";
+        if (os_tag == .windows) return "windows_arm64";
+        if (os_tag == .freebsd) return "freebsd_arm64";
     }
 
     return "unknown";
@@ -203,14 +206,15 @@ fn getLibExtension(target: std.Build.ResolvedTarget) []const u8 {
     };
 }
 
-fn getLibFilename(b: *std.Build, target: std.Build.ResolvedTarget) []const u8 {
+// Note that the name must follow -Dextension-name, because that is what the compiler emits.
+fn getLibFilename(b: *std.Build, target: std.Build.ResolvedTarget, name: []const u8) []const u8 {
     const lib_extension = getLibExtension(target);
     const os_tag = target.result.os.tag;
 
     // Note: Windows DLLs don't use "lib" prefix, but other platforms do
     if (os_tag == .windows) {
-        return b.fmt("extension{s}", .{lib_extension});
+        return b.fmt("{s}{s}", .{ name, lib_extension });
     } else {
-        return b.fmt("libextension{s}", .{lib_extension});
+        return b.fmt("lib{s}{s}", .{ name, lib_extension });
     }
 }

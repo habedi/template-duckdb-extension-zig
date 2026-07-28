@@ -15,7 +15,9 @@ JUNK_FILES := *.o *.obj *.dSYM *.dll *.so *.dylib *.a *.lib *.pdb temp/
 # Extension configuration
 EXTENSION_NAME ?= extension
 EXTENSION_API_VERSION ?= v1.2.0
-PLATFORM ?= linux_amd64
+EXTENSION_VERSION ?= v0.1.0
+PLATFORM ?=
+PLATFORM_FLAG := $(if $(PLATFORM),-Dplatform=$(PLATFORM),)
 
 SHELL         := /usr/bin/env bash
 .SHELLFLAGS   := -eu -o pipefail -c
@@ -24,7 +26,7 @@ SHELL         := /usr/bin/env bash
 # Targets
 ################################################################################
 
-.PHONY: all help build build-all rebuild test test-unit test-property test-integration release clean \
+.PHONY: all help build build-all rebuild test test-extension release clean \
  lint format docs docs-serve install-deps duckdb-translate duckdb
 
 .DEFAULT_GOAL := help
@@ -37,13 +39,13 @@ help: ## Show the help messages for all targets
 	awk 'BEGIN {FS = ":.*## "}; {printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2}'
 	@echo ""
 	@echo "Configuration Variables:"
+	@echo "  EXTENSION_NAME           Name of the extension (default: $(EXTENSION_NAME))"
 	@echo "  EXTENSION_API_VERSION    DuckDB extension API version to target (default: $(EXTENSION_API_VERSION))"
-	@echo "  PLATFORM          Target platform (default: $(PLATFORM))"
-	@echo ""
-	@echo "Note: Extension version is read from build.zig.zon (as our single source of truth)."
+	@echo "  EXTENSION_VERSION        Version recorded in the extension metadata (default: $(EXTENSION_VERSION))"
+	@echo "  PLATFORM                 Target platform (default: detected by build.zig)"
 	@echo ""
 	@echo "Examples:"
-	@echo "  make build-all EXTENSION_API_VERSION=v1.2.0"
+	@echo "  make build-all EXTENSION_NAME=my_extension EXTENSION_VERSION=v2.0.0"
 
 all: build test  ## Build and test (use 'make build-all' for extension with metadata)
 
@@ -58,53 +60,28 @@ build-all: ## Build extension with DuckDB metadata (ready to load)
 	@$(ZIG) build build-all \
 		-Dextension-name=$(EXTENSION_NAME) \
 		-Dapi-version=$(EXTENSION_API_VERSION) \
-		-Dplatform=$(PLATFORM) \
+		-Dextension-version=$(EXTENSION_VERSION) \
+		$(PLATFORM_FLAG) \
 		-j$(JOBS)
 
 rebuild: clean build-all  ## Clean and build with metadata
 
-test: ## Run all tests (unit, property, integration)
-	@echo "Running all tests..."
+test: ## Run unit tests
+	@echo "Running unit tests..."
 	@$(ZIG) build test \
 		-Dextension-name=$(EXTENSION_NAME) \
 		-Dapi-version=$(EXTENSION_API_VERSION) \
-		-Dplatform=$(PLATFORM) \
+		-Dextension-version=$(EXTENSION_VERSION) \
+		$(PLATFORM_FLAG) \
 		-j$(JOBS) $(TEST_FLAGS)
 
-test-unit: ## Run unit and regression tests
-	@echo "Running unit tests..."
-	@$(ZIG) build test-unit -j$(JOBS) $(TEST_FLAGS)
-
-test-property: ## Run property-based tests (Minish)
-	@echo "Running property-based tests..."
-	@$(ZIG) build test-property -j$(JOBS) $(TEST_FLAGS)
-
-test-integration: build-all  ## Run integration tests (requires DuckDB)
-	@echo "Running integration tests..."
-	@$(ZIG) build test-integration \
+test-extension: ## Load the built extension in DuckDB to check it (needs DuckDB)
+	@echo "Testing the extension with DuckDB..."
+	@$(ZIG) build test-extension \
 		-Dextension-name=$(EXTENSION_NAME) \
 		-Dapi-version=$(EXTENSION_API_VERSION) \
-		-Dplatform=$(PLATFORM) \
-		$(TEST_FLAGS)
-
-test-sql: build-all  ## Run standalone SQL tests (needs DuckDB)
-	@echo "Running SQL tests..."
-	@fail=0; \
-	for f in tests/sql/*.sql; do \
-		name=$$(basename "$$f"); \
-		if duckdb -unsigned -c ".read \"$$f\"" > /dev/null 2>&1; then \
-			printf "  %-40s PASS\n" "$$name"; \
-		else \
-			printf "  %-40s FAIL\n" "$$name"; \
-			fail=1; \
-		fi; \
-	done; \
-	[ $$fail -eq 0 ] && echo "All SQL tests passed." || (echo "Some SQL tests failed." && exit 1)
-
-bench: build-all  ## Run benchmarks (needs DuckDB)
-	@echo "Running benchmarks..."
-	@./benches/run.sh
-
+		-Dextension-version=$(EXTENSION_VERSION) \
+		$(PLATFORM_FLAG)
 
 release: ## Build in ReleaseFast mode with metadata
 	@echo "Building the extension in Release mode with API $(EXTENSION_API_VERSION)..."
@@ -112,7 +89,8 @@ release: ## Build in ReleaseFast mode with metadata
 		-Doptimize=ReleaseFast \
 		-Dextension-name=$(EXTENSION_NAME) \
 		-Dapi-version=$(EXTENSION_API_VERSION) \
-		-Dplatform=$(PLATFORM) \
+		-Dextension-version=$(EXTENSION_VERSION) \
+		$(PLATFORM_FLAG) \
 		-j$(JOBS)
 
 clean: ## Remove build artifacts, cache, and generated docs
@@ -135,14 +113,14 @@ format: ## Format Zig and C files
 	fi
 
 .PHONY: docs
-docs: ## Generate project documentation (MkDocs)
+docs: ## Generate the Zig API documentation into docs/api
 	@echo "Generating documentation..."
-	mkdocs build
+	@$(ZIG) build docs
 
 .PHONY: docs-serve
-docs-serve: docs ## Serve project docs (MkDocs) locally
+docs-serve: docs ## Serve the generated API documentation locally
 	@echo "Serving documentation locally..."
-	python -m http.server --directory ./site
+	python3 -m http.server --directory ./docs/api
 
 duckdb-translate: ## Regenerate Zig bindings from DuckDB C API headers
 	@echo "Generating DuckDB Zig bindings..."
@@ -151,7 +129,7 @@ duckdb-translate: ## Regenerate Zig bindings from DuckDB C API headers
 duckdb: build-all  ## Start interactive DuckDB with the extension loaded
 	@echo "Starting DuckDB with extension pre-loaded..."
 	@$(ZIG) build duckdb \
-		-Dplatform=$(PLATFORM)
+		$(PLATFORM_FLAG)
 
 install-deps: ## Install system dependencies (for Debian-based systems)
 	@echo "Installing system dependencies..."
@@ -174,6 +152,7 @@ build-linux-amd64: ## Build for Linux x86_64
 		-Dtarget=x86_64-linux-gnu \
 		-Dextension-name=$(EXTENSION_NAME) \
 		-Dapi-version=$(EXTENSION_API_VERSION) \
+		-Dextension-version=$(EXTENSION_VERSION) \
 		-Dplatform=linux_amd64 \
 		-j$(JOBS)
 	@mkdir -p $(BUILD_DIR)/lib/linux_amd64
@@ -185,6 +164,7 @@ build-linux-arm64: ## Build for Linux ARM64
 		-Dtarget=aarch64-linux-gnu \
 		-Dextension-name=$(EXTENSION_NAME) \
 		-Dapi-version=$(EXTENSION_API_VERSION) \
+		-Dextension-version=$(EXTENSION_VERSION) \
 		-Dplatform=linux_arm64 \
 		-j$(JOBS)
 	@mkdir -p $(BUILD_DIR)/lib/linux_arm64
@@ -196,6 +176,7 @@ build-linux-amd64-musl: ## Build for Linux x86_64 with musl libc (for Alpine Lin
 		-Dtarget=x86_64-linux-musl \
 		-Dextension-name=$(EXTENSION_NAME) \
 		-Dapi-version=$(EXTENSION_API_VERSION) \
+		-Dextension-version=$(EXTENSION_VERSION) \
 		-Dplatform=linux_amd64 \
 		-j$(JOBS)
 	@mkdir -p $(BUILD_DIR)/lib/linux_amd64_musl
@@ -207,6 +188,7 @@ build-linux-arm64-musl: ## Build for Linux ARM64 with musl libc (for Alpine Linu
 		-Dtarget=aarch64-linux-musl \
 		-Dextension-name=$(EXTENSION_NAME) \
 		-Dapi-version=$(EXTENSION_API_VERSION) \
+		-Dextension-version=$(EXTENSION_VERSION) \
 		-Dplatform=linux_arm64 \
 		-j$(JOBS)
 	@mkdir -p $(BUILD_DIR)/lib/linux_arm64_musl
@@ -218,6 +200,7 @@ build-macos-amd64: ## Build for macOS x86_64 (Intel)
 		-Dtarget=x86_64-macos \
 		-Dextension-name=$(EXTENSION_NAME) \
 		-Dapi-version=$(EXTENSION_API_VERSION) \
+		-Dextension-version=$(EXTENSION_VERSION) \
 		-Dplatform=osx_amd64 \
 		-j$(JOBS)
 	@mkdir -p $(BUILD_DIR)/lib/osx_amd64
@@ -229,6 +212,7 @@ build-macos-arm64: ## Build for macOS ARM64 (Apple Silicon)
 		-Dtarget=aarch64-macos \
 		-Dextension-name=$(EXTENSION_NAME) \
 		-Dapi-version=$(EXTENSION_API_VERSION) \
+		-Dextension-version=$(EXTENSION_VERSION) \
 		-Dplatform=osx_arm64 \
 		-j$(JOBS)
 	@mkdir -p $(BUILD_DIR)/lib/osx_arm64
@@ -240,6 +224,7 @@ build-windows-amd64: ## Build for Windows x86_64
 		-Dtarget=x86_64-windows-gnu \
 		-Dextension-name=$(EXTENSION_NAME) \
 		-Dapi-version=$(EXTENSION_API_VERSION) \
+		-Dextension-version=$(EXTENSION_VERSION) \
 		-Dplatform=windows_amd64 \
 		-j$(JOBS)
 	@mkdir -p $(BUILD_DIR)/lib/windows_amd64
@@ -251,6 +236,7 @@ build-windows-arm64: ## Build for Windows ARM64
 		-Dtarget=aarch64-windows-gnu \
 		-Dextension-name=$(EXTENSION_NAME) \
 		-Dapi-version=$(EXTENSION_API_VERSION) \
+		-Dextension-version=$(EXTENSION_VERSION) \
 		-Dplatform=windows_arm64 \
 		-j$(JOBS)
 	@mkdir -p $(BUILD_DIR)/lib/windows_arm64
@@ -262,6 +248,7 @@ build-freebsd-amd64: ## Build for FreeBSD x86_64
 		-Dtarget=x86_64-freebsd \
 		-Dextension-name=$(EXTENSION_NAME) \
 		-Dapi-version=$(EXTENSION_API_VERSION) \
+		-Dextension-version=$(EXTENSION_VERSION) \
 		-Dplatform=freebsd_amd64 \
 		-j$(JOBS)
 	@mkdir -p $(BUILD_DIR)/lib/freebsd_amd64
@@ -273,6 +260,7 @@ build-freebsd-arm64: ## Build for FreeBSD ARM64
 		-Dtarget=aarch64-freebsd \
 		-Dextension-name=$(EXTENSION_NAME) \
 		-Dapi-version=$(EXTENSION_API_VERSION) \
+		-Dextension-version=$(EXTENSION_VERSION) \
 		-Dplatform=freebsd_arm64 \
 		-j$(JOBS)
 	@mkdir -p $(BUILD_DIR)/lib/freebsd_arm64
