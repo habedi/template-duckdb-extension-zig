@@ -28,16 +28,23 @@ issue you would like to work on or if it has already been resolved.
 
 ### Development Workflow
 
+> [!IMPORTANT]
+> If you're using an AI-assisted coding tool like Claude Code or Codex, make sure the AI follows the instructions in
+> the root [AGENTS.md](AGENTS.md) file.
+
 #### Prerequisites
 
-Install GNU Make on your system if it's not already installed.
+You need Zig 0.16.0, Python 3, and Git.
+GNU Make is optional but assumed by the commands below, and a DuckDB binary is needed for the extension load tests.
 
 ```shell
 # For Debian-based systems like Debian, Ubuntu, etc.
 sudo apt-get install make
 ```
 
-- Use the `make install-deps` command to install the development dependencies.
+- Use the `make install-deps` command to install the development dependencies. Note that it does not install Zig, which
+  you need to install separately.
+- Alternatively, you can use Nix to create the build environment by running `nix develop` in the root of the project.
 
 #### Code Style
 
@@ -46,10 +53,6 @@ sudo apt-get install make
 #### Running Tests
 
 - Use the `make test` command to run the tests.
-
-#### Running Linters
-
-- Use the `make lint` command to run the linters.
 
 #### See Available Commands
 
