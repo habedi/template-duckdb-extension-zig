@@ -146,10 +146,13 @@ pub fn build(b: *std.Build) void {
 
     // Generate DuckDB Zig bindings from C API
     const gen_bindings_step = b.step("duckdb-translate", "Generate Zig bindings from DuckDB C API");
+    // Note: use the Zig running this build rather than whatever `zig` is on PATH, so the generated bindings
+    // match the toolchain that compiles them.
     const translate_cmd = b.addSystemCommand(&[_][]const u8{
         "sh",
         "-c",
-        "zig translate-c -I external/extension-template-c/duckdb_capi external/extension-template-c/duckdb_extension.h > src/duckdb.zig",
+        b.fmt("\"{s}\" translate-c -I external/extension-template-c/duckdb_capi " ++
+            "external/extension-template-c/duckdb_capi/duckdb_extension.h > src/duckdb.zig", .{b.graph.zig_exe}),
     });
     gen_bindings_step.dependOn(&translate_cmd.step);
 
