@@ -47,7 +47,6 @@ I'm sharing this template here in case it can be useful to others.
 - Python 3
 - DuckDB 1.2.0 or later (recommended for testing the extension)
 - GNU Make (optional, for convenience)
-- A C compiler
 - Git
 
 #### Quick Start

@@ -47,10 +47,6 @@ sudo apt-get install make
 
 - Use the `make test` command to run the tests.
 
-#### Running Linters
-
-- Use the `make lint` command to run the linters.
-
 #### See Available Commands
 
 - Run `make help` to see all available commands for managing different tasks.
