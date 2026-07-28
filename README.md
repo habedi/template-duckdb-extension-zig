@@ -8,7 +8,7 @@
 
 [![Tests](https://img.shields.io/github/actions/workflow/status/habedi/template-duckdb-extension-zig/tests.yml?label=tests&style=flat&labelColor=282c34&logo=github)](https://github.com/habedi/template-duckdb-extension-zig/actions/workflows/tests.yml)
 [![CodeFactor](https://img.shields.io/codefactor/grade/github/habedi/template-duckdb-extension-zig?label=code%20quality&style=flat&labelColor=282c34&logo=codefactor)](https://www.codefactor.io/repository/github/habedi/template-duckdb-extension-zig)
-[![Zig Version](https://img.shields.io/badge/Zig-0.16.0-orange?logo=zig&labelColor=282c34)](https://ziglang.org/download/)
+[![Zig Version](https://img.shields.io/badge/Zig-0.16.0-F7A41D?logo=zig&labelColor=282c34)](https://ziglang.org/download/)
 [![Release](https://img.shields.io/github/release/habedi/template-duckdb-extension-zig.svg?label=release&style=flat&labelColor=282c34&logo=github)](https://github.com/habedi/template-duckdb-extension-zig/releases/latest)
 [![License](https://img.shields.io/badge/license-MIT-007ec6?label=license&style=flat&labelColor=282c34&logo=open-source-initiative)](https://github.com/habedi/template-duckdb-extension-zig/blob/main/LICENSE)
 
@@ -138,7 +138,10 @@ All build tasks are managed through `zig build` or `make`:
 - `make docs` or `zig build docs` - Generate documentation (Zig API docs)
 - `make duckdb-translate` - Regenerate `src/duckdb.zig` from the vendored DuckDB C API headers
 - `make build-all-platforms` - Build for all supported platforms (OSes and hardware architectures)
-- `make setup-hooks` - Install the pre-commit and pre-push Git hooks
+- `make all` - Build the extension and run the unit tests
+- `make rebuild` - Clean, then build with metadata
+- `make install-deps` - Install the system dependencies on Debian-based systems (not including Zig)
+- `make setup-hooks` and `make test-hooks` - Install the Git hooks, and run them against all files
 
 ---
 

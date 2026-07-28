@@ -13,8 +13,9 @@
       supportedSystems = [ "x86_64-linux" "aarch64-linux" "aarch64-darwin" ];
       forAllSystems = nixpkgs.lib.genAttrs supportedSystems;
 
-      # DuckDB platform strings for the extension metadata. They do not match Nix system names, and the
-      # Makefile defaults to linux_amd64, so the package build has to pass the right one per system.
+      # DuckDB platform strings for the extension metadata. They do not match Nix system names.
+      # The Makefile leaves PLATFORM empty so build.zig detects it, and passing it here keeps the package
+      # independent of that detection.
       duckdbPlatforms = {
         "x86_64-linux" = "linux_amd64";
         "aarch64-linux" = "linux_arm64";

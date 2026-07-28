@@ -3,12 +3,11 @@
 # ################################################################################
 ZIG_LOCAL  := $(HOME)/.local/share/zig/0.16.0/zig
 ZIG        ?= $(shell test -x $(ZIG_LOCAL) && echo $(ZIG_LOCAL) || which zig)
-BUILD_TYPE    ?= Debug
 JOBS          ?= $(shell nproc || echo 2)
 SRC_DIR       := src
 BUILD_DIR     := zig-out
 CACHE_DIR     := .zig-cache
-RELEASE_MODE := ReleaseFast
+ZIG_FILES     := $(SRC_DIR) build.zig
 TEST_FLAGS := --summary all #--verbose
 JUNK_FILES := *.o *.obj *.dSYM *.dll *.so *.dylib *.a *.lib *.pdb temp/
 
@@ -68,12 +67,7 @@ rebuild: clean build-all  ## Clean and build with metadata
 
 test: ## Run unit tests
 	@echo "Running unit tests..."
-	@$(ZIG) build test \
-		-Dextension-name=$(EXTENSION_NAME) \
-		-Dapi-version=$(EXTENSION_API_VERSION) \
-		-Dextension-version=$(EXTENSION_VERSION) \
-		$(PLATFORM_FLAG) \
-		-j$(JOBS) $(TEST_FLAGS)
+	@$(ZIG) build test -j$(JOBS) $(TEST_FLAGS)
 
 test-extension: ## Load the built extension in DuckDB to check it (needs DuckDB)
 	@echo "Testing the extension with DuckDB..."
@@ -100,11 +94,11 @@ clean: ## Remove build artifacts, cache, and generated docs
 
 lint: ## Check code style and formatting of Zig files
 	@echo "Running code style checks..."
-	@$(ZIG) fmt --check $(SRC_DIR)
+	@$(ZIG) fmt --check $(ZIG_FILES)
 
 format: ## Format Zig and C files
 	@echo "Formatting Zig files..."
-	@$(ZIG) fmt $(SRC_DIR)
+	@$(ZIG) fmt $(ZIG_FILES)
 	@echo "Formatting C files..."
 	@if command -v clang-format &> /dev/null; then \
 		find $(SRC_DIR) -name "*.c" -o -name "*.h" | xargs clang-format -i; \
@@ -126,9 +120,12 @@ duckdb-translate: ## Regenerate Zig bindings from DuckDB C API headers
 	@echo "Generating DuckDB Zig bindings..."
 	@$(ZIG) build duckdb-translate
 
-duckdb: build-all  ## Start interactive DuckDB with the extension loaded
+duckdb: ## Start interactive DuckDB with the extension loaded
 	@echo "Starting DuckDB with extension pre-loaded..."
 	@$(ZIG) build duckdb \
+		-Dextension-name=$(EXTENSION_NAME) \
+		-Dapi-version=$(EXTENSION_API_VERSION) \
+		-Dextension-version=$(EXTENSION_VERSION) \
 		$(PLATFORM_FLAG)
 
 install-deps: ## Install system dependencies (for Debian-based systems)

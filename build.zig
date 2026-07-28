@@ -3,9 +3,9 @@ const std = @import("std");
 pub fn build(b: *std.Build) void {
     // Add standard options for target and optimization mode.
     const target = b.standardTargetOptions(.{});
-    const optimize = b.standardOptimizeOption(.{
-        .preferred_optimize_mode = .ReleaseFast,
-    });
+    // Do not set preferred_optimize_mode here. It replaces the -Doptimize option with -Drelease,
+    // which breaks `make release` and every other caller that passes -Doptimize=ReleaseFast.
+    const optimize = b.standardOptimizeOption(.{});
 
     // Build options for DuckDB Extension configuration
     const extension_name = b.option([]const u8, "extension-name", "Extension name (default: extension)") orelse "extension";
@@ -113,7 +113,10 @@ pub fn build(b: *std.Build) void {
 
     // Test extension with DuckDB step
     const test_ext_step = b.step("test-extension", "Test the extension with DuckDB");
-    const test_load_cmd = b.fmt("LOAD 'zig-out/lib/{s}'; SELECT 'Extension loaded successfully' as status;", .{extension_filename});
+    // Note: build the path from the install prefix, so a non-default --prefix still loads the file that
+    // the metadata step actually wrote.
+    const installed_extension_path = b.getInstallPath(.lib, extension_filename);
+    const test_load_cmd = b.fmt("LOAD '{s}'; SELECT 'Extension loaded successfully' as status;", .{installed_extension_path});
     const test_ext_cmd = b.addSystemCommand(&[_][]const u8{
         "duckdb",
         "-unsigned",
@@ -127,7 +130,7 @@ pub fn build(b: *std.Build) void {
     const duckdb_step = b.step("duckdb", "Start interactive DuckDB session with extension loaded");
 
     // Create init file with extension loaded
-    const init_sql_content = b.fmt("echo \"LOAD 'zig-out/lib/{s}'; SELECT 'Extension loaded successfully!' as status;\" > /tmp/duckdb_init.sql", .{extension_filename});
+    const init_sql_content = b.fmt("echo \"LOAD '{s}'; SELECT 'Extension loaded successfully!' as status;\" > /tmp/duckdb_init.sql", .{installed_extension_path});
     const create_init = b.addSystemCommand(&[_][]const u8{
         "sh",
         "-c",
@@ -168,6 +171,8 @@ pub fn build(b: *std.Build) void {
         b.graph.zig_exe,
         "build-lib",
         "src/lib.zig",
+        // Note: without -fno-emit-bin this drops a multi-megabyte liblib.a in the repository root.
+        "-fno-emit-bin",
         "-femit-docs=" ++ doc_install_path,
     });
     const mkdir_cmd = b.addSystemCommand(&[_][]const u8{
@@ -193,7 +198,12 @@ fn detectPlatform(target: std.Build.ResolvedTarget) []const u8 {
         if (os_tag == .freebsd) return "freebsd_arm64";
     }
 
-    return "unknown";
+    // Note: fail loudly instead of returning a placeholder. A bogus platform string is accepted by the
+    // metadata step and only rejected later by DuckDB at LOAD time, far away from the cause.
+    std.debug.panic(
+        "cannot detect the DuckDB platform for {s}-{s}, pass it with -Dplatform=<platform>",
+        .{ @tagName(cpu_arch), @tagName(os_tag) },
+    );
 }
 
 fn getLibExtension(target: std.Build.ResolvedTarget) []const u8 {
