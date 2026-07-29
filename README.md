@@ -18,10 +18,8 @@ A template for creating DuckDB extensions in Zig
 
 ---
 
-This is a DuckDB extension template for Zig that provides a starting point for creating DuckDB extensions in Zig
-programming language.
-It uses the DuckDB's extension API ([C version](https://github.com/duckdb/extension-template-c/tree/main/duckdb_capi))
-and supports multi-platform builds using Zig's cross-compilation features.
+This is a DuckDB extension template for Zig that provides a starting point for creating DuckDB extensions in Zig programming language.
+It uses the DuckDB's extension API ([C version](https://github.com/duckdb/extension-template-c/tree/main/duckdb_capi)) and supports multi-platform builds using Zig's cross-compilation features.
 
 I'm sharing this template here in case it can be useful to others.
 
@@ -102,8 +100,7 @@ The build system supports several configurable variables:
 
 - `EXTENSION_NAME` - Name of the extension (default: "extension")
 - `EXTENSION_API_VERSION` - DuckDB Extension API version (default: "v1.2.0"; normally you don't need to change this)
-- `EXTENSION_VERSION` - Your extension version, recorded in the extension metadata (default: taken from `build.zig`,
-  which is "v0.1.0")
+- `EXTENSION_VERSION` - Your extension version, recorded in the extension metadata (default: taken from `build.zig`, which is "v0.1.0")
 - `PLATFORM` - DuckDB platform string such as `linux_amd64` or `osx_arm64` (default: detected from the build target)
 - `RELEASE_MODE` - Optimization mode for `make release` and the cross-compilation targets (default: "ReleaseFast")
 

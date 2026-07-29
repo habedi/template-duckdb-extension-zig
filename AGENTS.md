@@ -4,8 +4,8 @@ This file provides guidance to coding agents collaborating on this repository.
 
 ## Mission
 
-This repository is a template for building DuckDB extensions in Zig. It is a starting point that other projects copy, rename, and extend, so its value
-comes from staying small, buildable, and easy to understand.
+This repository is a template for building DuckDB extensions in Zig.
+It is a starting point that other projects copy, rename, and extend, so its value comes from staying small, buildable, and easy to understand.
 
 It has three thin layers:
 
@@ -216,27 +216,6 @@ lands.
 
 Do not delete, skip, or weaken a test to reach green. If a test blocks a change and the test itself is wrong, fix it as a separate step and say that
 you did.
-
-## Known Gaps
-
-Every `Makefile` target now maps to something the repository provides, so treat a failing target as a regression rather than as an unimplemented
-feature. Two rough edges remain:
-
-- The `Makefile` prefers `$(HOME)/.local/share/zig/0.16.0/zig` over the `zig` on `PATH`, so inside `nix develop` it uses the host toolchain instead of
-  the pinned one. See "Toolchain" above.
-- `duckdb-translate` rewrites `src/duckdb.zig` through a shell redirect, so an interrupted or failing run truncates the file. Restore it with
-  `git checkout src/duckdb.zig`.
-
-Two traps are worth knowing, because both once produced silently wrong output rather than an error:
-
-- The library filename must follow `-Dextension-name`. When `getLibFilename` hardcoded `libextension.so`, the metadata step either failed on a clean
-  tree or, worse, read a stale default-named library and stamped it with the new name.
-- Every `Makefile` target that invokes `zig build` must forward `-Dextension-name`. The `duckdb` target once forwarded only the platform, so a custom
-  name silently rebuilt and loaded the default extension.
-- `PLATFORM` must stay empty by default in the `Makefile`, so that `detectPlatform` in `build.zig` decides. Hardcoding it made `make build-all` label
-  every host build `linux_amd64`, including on ARM.
-
-If a task adds a `Makefile` target, keep `README.md` and `make help` in step with it.
 
 ## Change Design Checklist
 
