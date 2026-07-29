@@ -1,6 +1,7 @@
 name: Build and Test Extensions
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - main
@@ -8,17 +9,20 @@ on:
   pull_request:
     branches:
       - main
-  workflow_dispatch:
 
 env:
   EXTENSION_NAME: extension
   EXTENSION_API_VERSION: v1.2.0
   EXTENSION_VERSION: v0.1.0
   ZIG_VERSION: 0.16.0
-  DUCKDB_VERSION: v1.4.1
+  DUCKDB_VERSION: v1.5.5
 
 permissions:
   contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build-linux-amd64:
