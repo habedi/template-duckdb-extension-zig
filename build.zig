@@ -1,10 +1,7 @@
 const std = @import("std");
 
 pub fn build(b: *std.Build) void {
-    // Add standard options for target and optimization mode.
     const target = b.standardTargetOptions(.{});
-    // Do not set preferred_optimize_mode here. It replaces the -Doptimize option with -Drelease,
-    // which breaks `make release` and every other caller that passes -Doptimize=ReleaseFast.
     const optimize = b.standardOptimizeOption(.{});
 
     // Build options for DuckDB Extension configuration
@@ -80,15 +77,6 @@ pub fn build(b: *std.Build) void {
     });
     clean_step.dependOn(&clean_cmd.step);
 
-    // Detect the library file extension based on target OS
-    const lib_filename = getLibFilename(b, target, extension_name);
-    // Windows DLLs go to bin/, other platforms go to lib/
-    const os_tag = target.result.os.tag;
-    const lib_path = if (os_tag == .windows)
-        b.getInstallPath(.bin, lib_filename)
-    else
-        b.getInstallPath(.lib, lib_filename);
-
     // Add metadata step - adds DuckDB extension metadata for proper loading (name, version, platform, API version)
     // Note: we will be using DuckDB extension API version (v1.2.0) so the extension will be compatible with DuckDB versions >= 1.2.0
     const add_metadata_step = b.step("add-metadata", "Add DuckDB extension metadata");
@@ -96,11 +84,15 @@ pub fn build(b: *std.Build) void {
         "python3",
         "external/extension-template-c/extension-ci-tools/scripts/append_extension_metadata.py",
         "-l",
-        lib_path,
+    });
+    metadata_cmd.addFileArg(lib.getEmittedBin());
+    metadata_cmd.addArgs(&[_][]const u8{
         "-n",
         extension_name,
         "-o",
-        b.getInstallPath(.lib, extension_filename),
+    });
+    const extension_file = metadata_cmd.addOutputFileArg(extension_filename);
+    metadata_cmd.addArgs(&[_][]const u8{
         "-dv",
         extension_api_version,
         "-ev",
@@ -108,40 +100,39 @@ pub fn build(b: *std.Build) void {
         "-p",
         platform,
     });
-    metadata_cmd.step.dependOn(b.getInstallStep());
-    add_metadata_step.dependOn(&metadata_cmd.step);
+
+    const install_ext = b.addInstallLibFile(extension_file, extension_filename);
+    add_metadata_step.dependOn(&install_ext.step);
 
     // Test extension with DuckDB step
     const test_ext_step = b.step("test-extension", "Test the extension with DuckDB");
-    // Note: build the path from the install prefix, so a non-default --prefix still loads the file that
-    // the metadata step actually wrote.
-    const installed_extension_path = b.getInstallPath(.lib, extension_filename);
-    const test_load_cmd = b.fmt("LOAD '{s}'; SELECT 'Extension loaded successfully' as status;", .{installed_extension_path});
     const test_ext_cmd = b.addSystemCommand(&[_][]const u8{
         "duckdb",
         "-unsigned",
         "-c",
-        test_load_cmd,
     });
-    test_ext_cmd.step.dependOn(&metadata_cmd.step);
+    test_ext_cmd.addFileArg2(extension_file, .{
+        .prefix = "LOAD '",
+        .suffix = "'; SELECT 'Extension loaded successfully' as status;",
+        .make_absolute = true,
+    });
+    test_ext_cmd.step.dependOn(&install_ext.step);
     test_ext_step.dependOn(&test_ext_cmd.step);
 
     // Interactive DuckDB session with extension loaded
     const duckdb_step = b.step("duckdb", "Start interactive DuckDB session with extension loaded");
-
-    // Create the init file through a WriteFile step rather than a shell redirect.
-    // That keeps the step working on Windows.
-    const init_sql = b.fmt("LOAD '{s}'; SELECT 'Extension loaded successfully!' as status;\n", .{installed_extension_path});
-    const init_sql_file = b.addWriteFiles().add("duckdb_init.sql", init_sql);
-
     const run_duckdb = b.addSystemCommand(&[_][]const u8{
         "duckdb",
         "-unsigned",
-        "-init",
+        "-cmd",
     });
-    run_duckdb.addFileArg(init_sql_file);
+    run_duckdb.addFileArg2(extension_file, .{
+        .prefix = "LOAD '",
+        .suffix = "'; SELECT 'Extension loaded successfully!' as status;",
+        .make_absolute = true,
+    });
     run_duckdb.stdio = .inherit;
-    run_duckdb.step.dependOn(&metadata_cmd.step);
+    run_duckdb.step.dependOn(&install_ext.step);
     duckdb_step.dependOn(&run_duckdb.step);
 
     // Generate DuckDB Zig bindings from C API
@@ -197,27 +188,4 @@ fn detectPlatform(target: std.Build.ResolvedTarget) []const u8 {
         "cannot detect the DuckDB platform for {s}-{s}, pass it with -Dplatform=<platform>",
         .{ @tagName(cpu_arch), @tagName(os_tag) },
     );
-}
-
-fn getLibExtension(target: std.Build.ResolvedTarget) []const u8 {
-    const os_tag = target.result.os.tag;
-
-    return switch (os_tag) {
-        .windows => ".dll",
-        .macos => ".dylib",
-        else => ".so",
-    };
-}
-
-// Note that the name must follow -Dextension-name, because that is what the compiler emits.
-fn getLibFilename(b: *std.Build, target: std.Build.ResolvedTarget, name: []const u8) []const u8 {
-    const lib_extension = getLibExtension(target);
-    const os_tag = target.result.os.tag;
-
-    // Note: Windows DLLs don't use "lib" prefix, but other platforms do
-    if (os_tag == .windows) {
-        return b.fmt("{s}{s}", .{ name, lib_extension });
-    } else {
-        return b.fmt("lib{s}{s}", .{ name, lib_extension });
-    }
 }
