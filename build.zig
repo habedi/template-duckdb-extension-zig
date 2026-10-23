@@ -114,6 +114,7 @@ pub fn build(b: *std.Build) void {
     test_ext_cmd.addFileArg2(extension_file, .{
         .prefix = "LOAD '",
         .suffix = "'; SELECT 'Extension loaded successfully' as status;",
+        .make_absolute = true,
     });
     test_ext_cmd.step.dependOn(&install_ext.step);
     test_ext_step.dependOn(&test_ext_cmd.step);
@@ -128,6 +129,7 @@ pub fn build(b: *std.Build) void {
     run_duckdb.addFileArg2(extension_file, .{
         .prefix = "LOAD '",
         .suffix = "'; SELECT 'Extension loaded successfully!' as status;",
+        .make_absolute = true,
     });
     run_duckdb.stdio = .inherit;
     run_duckdb.step.dependOn(&install_ext.step);
@@ -186,27 +188,4 @@ fn detectPlatform(target: std.Build.ResolvedTarget) []const u8 {
         "cannot detect the DuckDB platform for {s}-{s}, pass it with -Dplatform=<platform>",
         .{ @tagName(cpu_arch), @tagName(os_tag) },
     );
-}
-
-fn getLibExtension(target: std.Build.ResolvedTarget) []const u8 {
-    const os_tag = target.result.os.tag;
-
-    return switch (os_tag) {
-        .windows => ".dll",
-        .macos => ".dylib",
-        else => ".so",
-    };
-}
-
-// Note that the name must follow -Dextension-name, because that is what the compiler emits.
-fn getLibFilename(b: *std.Build, target: std.Build.ResolvedTarget, name: []const u8) []const u8 {
-    const lib_extension = getLibExtension(target);
-    const os_tag = target.result.os.tag;
-
-    // Note: Windows DLLs don't use "lib" prefix, but other platforms do
-    if (os_tag == .windows) {
-        return b.fmt("{s}{s}", .{ name, lib_extension });
-    } else {
-        return b.fmt("lib{s}{s}", .{ name, lib_extension });
-    }
 }

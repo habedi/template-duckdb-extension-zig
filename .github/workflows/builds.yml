@@ -14,8 +14,8 @@ env:
   EXTENSION_NAME: extension
   EXTENSION_API_VERSION: v1.2.0
   EXTENSION_VERSION: v0.1.0
-  ZIG_VERSION: 0.16.0
-  DUCKDB_VERSION: v1.5.5
+  ZIG_VERSION: 0.17.0
+  DUCKDB_VERSION: v2.0.0
 
 permissions:
   contents: read
@@ -53,8 +53,8 @@ jobs:
 
       - name: Download DuckDB CLI
         run: |
-          wget -q https://github.com/duckdb/duckdb/releases/download/${{ env.DUCKDB_VERSION }}/duckdb_cli-linux-amd64.zip
-          unzip -q duckdb_cli-linux-amd64.zip
+          wget -q https://github.com/duckdb/duckdb/releases/download/${{ env.DUCKDB_VERSION }}/duckdb-cli-linux-amd64.tar.gz
+          tar -xzf duckdb-cli-linux-amd64.tar.gz
           chmod +x duckdb
 
       - name: Smoke test
@@ -101,8 +101,8 @@ jobs:
 
       - name: Download DuckDB CLI
         run: |
-          wget -q https://github.com/duckdb/duckdb/releases/download/${{ env.DUCKDB_VERSION }}/duckdb_cli-linux-arm64.zip
-          unzip -q duckdb_cli-linux-arm64.zip
+          wget -q https://github.com/duckdb/duckdb/releases/download/${{ env.DUCKDB_VERSION }}/duckdb-cli-linux-arm64.tar.gz
+          tar -xzf duckdb-cli-linux-arm64.tar.gz
           chmod +x duckdb
 
       - name: Smoke test
@@ -237,8 +237,8 @@ jobs:
 
       - name: Download DuckDB CLI
         run: |
-          wget -q https://github.com/duckdb/duckdb/releases/download/${{ env.DUCKDB_VERSION }}/duckdb_cli-osx-universal.zip
-          unzip -q duckdb_cli-osx-universal.zip
+          wget -q https://github.com/duckdb/duckdb/releases/download/${{ env.DUCKDB_VERSION }}/duckdb-cli-osx-universal.tar.gz
+          tar -xzf duckdb-cli-osx-universal.tar.gz
           chmod +x duckdb
 
       - name: Smoke test
@@ -285,8 +285,8 @@ jobs:
 
       - name: Download DuckDB CLI
         run: |
-          wget -q https://github.com/duckdb/duckdb/releases/download/${{ env.DUCKDB_VERSION }}/duckdb_cli-osx-universal.zip
-          unzip -q duckdb_cli-osx-universal.zip
+          wget -q https://github.com/duckdb/duckdb/releases/download/${{ env.DUCKDB_VERSION }}/duckdb-cli-osx-universal.tar.gz
+          tar -xzf duckdb-cli-osx-universal.tar.gz
           chmod +x duckdb
 
       - name: Smoke test
@@ -335,8 +335,8 @@ jobs:
       - name: Download DuckDB CLI
         shell: bash
         run: |
-          curl -L -o duckdb_cli-windows-amd64.zip https://github.com/duckdb/duckdb/releases/download/${{ env.DUCKDB_VERSION }}/duckdb_cli-windows-amd64.zip
-          unzip -q duckdb_cli-windows-amd64.zip
+          curl -L -o duckdb-cli-windows-amd64.tar.gz https://github.com/duckdb/duckdb/releases/download/${{ env.DUCKDB_VERSION }}/duckdb-cli-windows-amd64.tar.gz
+          tar -xzf duckdb-cli-windows-amd64.tar.gz
 
       - name: Smoke test
         shell: bash
