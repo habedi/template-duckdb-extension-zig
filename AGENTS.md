@@ -17,7 +17,7 @@ It has three thin layers:
 Priorities, in order:
 
 1. The template builds, loads into DuckDB, and passes its smoke test on every supported platform.
-2. Compatibility with DuckDB 1.2.0 and later through Extension API `v1.2.0`.
+2. Compatibility with DuckDB 1.2.0, 1.5.x, and 2.0.0 through Extension API `v1.2.0`.
 3. Minimalism, so that users can read the whole template quickly and replace the example functions with their own.
 4. Documentation that matches the build system, since `README.md` is the primary interface for template users.
 
@@ -103,8 +103,8 @@ own. The `add-metadata` step runs `external/extension-template-c/extension-ci-to
 name, extension version, platform, and API version, and writes `zig-out/lib/<extension-name>.duckdb_extension`. For this reason, `build-all` is the
 useful build target, `build` alone is not, and Python 3 is a build dependency.
 
-Windows is a special case in two places: the DLL is installed under `bin` rather than `lib`, and it has no `lib` prefix.
-`getLibFilename` in `build.zig` handles both.
+The metadata step consumes the raw compiled artifact via `lib.getEmittedBin()`, which avoids manual path handling across platforms.
+It writes the tagged extension file and installs it under `zig-out/lib/<extension-name>.duckdb_extension`.
 
 Cross-compilation targets in the `Makefile` pass `-Dtarget` and `-Dplatform` explicitly, then copy the result into `zig-out/lib/<platform>/`. The
 `-Dplatform` value must be the DuckDB platform string, such as `linux_amd64`, `osx_arm64`, or `windows_amd64`, not the Zig target triple. When adding
@@ -120,19 +120,17 @@ breaks every caller above.
 
 ### Toolchain
 
-`build.zig` targets Zig 0.16.0, which is the version CI pins and `README.md` documents. It also builds under 0.15.1 and 0.15.2.
+`build.zig` targets Zig 0.17.0, which is the version CI pins and `README.md` documents.
 
-That range works because the C source file, include path, macros, and libc are configured on the module returned by `b.createModule`, not on the
-library step returned by `b.addLibrary`. Zig 0.16.0 removed the `Build.Step.Compile` wrappers for those, including `addCSourceFile`, `addIncludePath`,
-and `linkLibC`, while the `Build.Module` methods are identical across all three versions. Keep the configuration on the module, since moving it back
-to the library step breaks the 0.16.0 build.
+That version uses the lazy path and configure-time build graph APIs of Zig 0.17.0. The metadata step consumes the raw compiled library artifact via
+`lib.getEmittedBin()`, writes the tagged extension artifact via `addOutputFileArg`, and installs it via `addInstallLibFile`.
 
-The `Makefile` prefers `$(HOME)/.local/share/zig/0.16.0/zig` when that file exists, and falls back to the `zig` on `PATH`. Override it with
+The `Makefile` prefers `$(HOME)/.local/share/zig/0.17.0/zig` when that file exists, and falls back to the `zig` on `PATH`. Override it with
 `make <target> ZIG=/path/to/zig` to check another version. Zig build API changes between minor versions, so when a `build.zig` step fails to compile,
 check which Zig version is running before changing the code.
 
-`nix develop` provides Zig 0.16.0, DuckDB, Python 3, `clang-format`, and `pre-commit`. It pins `zig_0_16` rather than `zig`, so the shell does not
-follow nixpkgs when the default Zig moves on. Inside that shell the `Makefile` still prefers `$(HOME)/.local/share/zig/0.16.0/zig` when it exists,
+`nix develop` provides Zig 0.17.0, DuckDB, Python 3, `clang-format`, and `pre-commit`. It pins `zig_0_17` rather than `zig`, so the shell does not
+follow nixpkgs when the default Zig moves on. Inside that shell the `Makefile` still prefers `$(HOME)/.local/share/zig/0.17.0/zig` when it exists,
 which silently bypasses the pinned toolchain, so pass `ZIG=$(command -v zig)` to use the version the shell provides.
 
 `nix build` needs the submodules, which a plain flake source does not carry, so run it as `nix build '.?submodules=1'`. The derivation sets
@@ -147,7 +145,7 @@ the file and discard that footer. It also overrides `SHELL`, since the `Makefile
 
 ## Zig Conventions
 
-- Target Zig 0.16.0 as the supported version, and keep `build.zig` building on 0.15.1 and 0.15.2 as well.
+- Target Zig 0.17.0 as the supported version.
 - Format with `zig fmt` through `make format`, and check with `make lint`.
 - Use 4 space indentation and the line limits in `.editorconfig`.
 - Prefer explicit error sets and error unions over panics. Never let a Zig error propagate as a panic across the C boundary, because a panic in a
@@ -192,8 +190,8 @@ Minimum expectations:
 - Build system changes: `make build-all` plus at least one cross-compilation target.
 - Documentation changes: no build required, but verify that every command mentioned actually exists.
 
-`zig build test-extension` and `zig build duckdb`, along with their `make` equivalents, need a `duckdb` binary on `PATH` of version 1.2.0 or later. If
-it is missing, say so instead of reporting the check as passed.
+`zig build test-extension` and `zig build duckdb`, along with their `make` equivalents, need a `duckdb` binary on `PATH` of version 1.2.0 or later,
+including 2.0.0. If it is missing, say so instead of reporting the check as passed.
 
 ## Testing Expectations
 
