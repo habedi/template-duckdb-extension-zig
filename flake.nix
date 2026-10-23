@@ -24,7 +24,7 @@
         {
           default = pkgs.mkShell {
             packages = with pkgs; [
-              zig_0_16
+              zig_0_17
               gnumake
               python3
               clang-tools
@@ -45,7 +45,7 @@
             pname = "duckdb-extension-zig";
             version = "0.1.0";
             src = ./.;
-            nativeBuildInputs = [ pkgs.zig_0_16 pkgs.gnumake pkgs.python3 ];
+            nativeBuildInputs = [ pkgs.zig_0_17 pkgs.gnumake pkgs.python3 ];
             dontConfigure = true;
             dontStrip = true;
             dontPatchELF = true;
@@ -60,7 +60,7 @@
               # resolve it with `which`.
               make release \
                 SHELL=${pkgs.bash}/bin/bash \
-                ZIG=${pkgs.zig_0_16}/bin/zig \
+                ZIG=${pkgs.zig_0_17}/bin/zig \
                 PLATFORM=${duckdbPlatforms.${system}}
               runHook postBuild
             '';

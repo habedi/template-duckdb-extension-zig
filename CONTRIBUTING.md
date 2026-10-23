@@ -33,7 +33,7 @@ issue you would like to work on or if it has already been resolved.
 
 #### Prerequisites
 
-You need Zig 0.16.0, Python 3, and Git.
+You need Zig 0.17.0, Python 3, and Git.
 GNU Make is optional but assumed by the commands below, and a DuckDB binary is needed for the extension load tests.
 
 ```shell
